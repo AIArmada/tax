@@ -1,0 +1,40 @@
+{
+    "name": "aiarmada/tax",
+    "description": "Tax calculation engine for the AIArmada Commerce ecosystem",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "commerce",
+        "tax",
+        "vat",
+        "gst",
+        "sales-tax"
+    ],
+    "authors": [
+        {
+            "name": "AIArmada",
+            "email": "dev@aiarmada.com"
+        }
+    ],
+    "require": {
+        "aiarmada/commerce-support": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "AIArmada\\Tax\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AIArmada\\Tax\\TaxServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
