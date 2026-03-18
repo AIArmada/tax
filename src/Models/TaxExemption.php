@@ -9,7 +9,9 @@ use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxExemptionFactory;
 use AIArmada\Tax\Enums\ExemptionStatus;
 use AIArmada\Tax\Support\TaxOwnerScope;
+use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,10 +34,10 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $document_path
  * @property ExemptionStatus $status
  * @property string|null $rejection_reason
- * @property \Carbon\CarbonInterface|null $verified_at
+ * @property CarbonInterface|null $verified_at
  * @property string|null $verified_by
- * @property \Carbon\CarbonInterface|null $starts_at
- * @property \Carbon\CarbonInterface|null $expires_at
+ * @property CarbonInterface|null $starts_at
+ * @property CarbonInterface|null $expires_at
  * @property-read TaxZone|null $taxZone
  * @property-read Model|null $exemptable
  */
@@ -165,10 +167,10 @@ class TaxExemption extends Model
     // =========================================================================
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeActive(Builder $query): Builder
     {
         $now = now();
 
@@ -184,28 +186,28 @@ class TaxExemption extends Model
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopePending(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopePending(Builder $query): Builder
     {
         return $query->where('status', ExemptionStatus::Pending);
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeApproved(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', ExemptionStatus::Approved);
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeRejected(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeRejected(Builder $query): Builder
     {
         return $query->where('status', ExemptionStatus::Rejected);
     }
@@ -213,12 +215,12 @@ class TaxExemption extends Model
     /**
      * Scope to exemptions for a specific zone (or all zones).
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeForZone(\Illuminate\Database\Eloquent\Builder $query, ?string $zoneId): \Illuminate\Database\Eloquent\Builder
+    public function scopeForZone(Builder $query, ?string $zoneId): Builder
     {
-        return $query->where(function (\Illuminate\Database\Eloquent\Builder $builder) use ($zoneId): void {
+        return $query->where(function (Builder $builder) use ($zoneId): void {
             $builder->whereNull('tax_zone_id');
 
             if ($zoneId !== null) {

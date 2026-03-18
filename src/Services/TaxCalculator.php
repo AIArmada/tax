@@ -16,6 +16,7 @@ use AIArmada\Tax\Models\TaxZone;
 use AIArmada\Tax\Settings\TaxSettings;
 use AIArmada\Tax\Settings\TaxZoneSettings;
 use AIArmada\Tax\Support\TaxOwnerScope;
+use Illuminate\Database\Eloquent\Collection;
 use Throwable;
 
 class TaxCalculator implements TaxCalculatorInterface
@@ -169,9 +170,9 @@ class TaxCalculator implements TaxCalculatorInterface
     /**
      * Get all applicable tax rates for a class and zone.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, TaxRate>
+     * @return Collection<int, TaxRate>
      */
-    protected function getRates(string $taxClass, TaxZone $zone, bool $isShipping = false): \Illuminate\Database\Eloquent\Collection
+    protected function getRates(string $taxClass, TaxZone $zone, bool $isShipping = false): Collection
     {
         $query = TaxOwnerScope::applyToOwnedQuery(TaxRate::query())
             ->where('zone_id', $zone->id)
@@ -191,12 +192,12 @@ class TaxCalculator implements TaxCalculatorInterface
     /**
      * Calculate tax with multiple rates (compound support).
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, TaxRate>  $rates
+     * @param  Collection<int, TaxRate>  $rates
      * @return array{total: int, primary_rate: TaxRate, breakdown: array<int, array{name: string, rate: int, amount: int, is_compound: bool}>}
      */
     protected function calculateWithRates(
         int $amountInCents,
-        \Illuminate\Database\Eloquent\Collection $rates,
+        Collection $rates,
         bool $pricesIncludeTax
     ): array {
         $breakdown = [];

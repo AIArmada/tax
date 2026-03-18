@@ -9,6 +9,7 @@ use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxRateFactory;
 use AIArmada\Tax\Support\TaxOwnerScope;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -158,28 +159,28 @@ class TaxRate extends Model
     // =========================================================================
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeForClass(\Illuminate\Database\Eloquent\Builder $query, string $taxClass): \Illuminate\Database\Eloquent\Builder
+    public function scopeForClass(Builder $query, string $taxClass): Builder
     {
         return $query->where('tax_class', $taxClass);
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeForZone(\Illuminate\Database\Eloquent\Builder $query, string $zoneId): \Illuminate\Database\Eloquent\Builder
+    public function scopeForZone(Builder $query, string $zoneId): Builder
     {
         return $query->where('zone_id', $zoneId);
     }
