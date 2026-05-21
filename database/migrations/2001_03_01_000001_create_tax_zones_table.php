@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $jsonColumnType = (string) config('tax.database.json_column_type', 'json');
+        $jsonColumnType = (string) config('tax.database.json_column_type', commerce_json_column_type('tax', 'json'));
 
         Schema::create((string) config('tax.database.tables.tax_zones', 'tax_zones'), function (Blueprint $table) use ($jsonColumnType): void {
             $table->uuid('id')->primary();

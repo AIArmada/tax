@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create((string) config('tax.database.tables.tax_rates', 'tax_rates'), function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->nullableMorphs('owner');
-            $table->uuid('zone_id');
+            $table->foreignUuid('zone_id');
             $table->string('tax_class')->default('standard');
             $table->string('name');
             $table->text('description')->nullable();

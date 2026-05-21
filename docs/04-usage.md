@@ -474,17 +474,27 @@ Enable owner scoping:
 ],
 ```
 
-All queries are automatically scoped:
+All queries are automatically scoped to the current owner:
 
+**HTTP Contexts:**
 ```php
 use AIArmada\CommerceSupport\Support\OwnerContext;
 
-// Set current tenant
-OwnerContext::set($tenant);
-
+// Middleware sets current tenant automatically
 // All queries scoped to tenant
 $zones = TaxZone::all(); // Only this tenant's zones
 $result = Tax::calculateTax(10000, 'standard'); // Uses tenant's rates
+```
+
+**Non-HTTP Contexts (Jobs, Commands):**
+```php
+use AIArmada\CommerceSupport\Support\OwnerContext;
+
+// For queued jobs or console commands, use withOwner()
+OwnerContext::withOwner($tenant, function () {
+    $zones = TaxZone::all(); // Only this tenant's zones
+    $result = Tax::calculateTax(10000, 'standard'); // Uses tenant's rates
+});
 ```
 
 ### Manual Scoping

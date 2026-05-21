@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Models;
 
+use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
+use AIArmada\CommerceSupport\Support\OwnerWriteGuard;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
+use AIArmada\Tax\Actions\ApproveExemptionAction;
+use AIArmada\Tax\Actions\RejectExemptionAction;
 use AIArmada\Tax\Database\Factories\TaxExemptionFactory;
 use AIArmada\Tax\Enums\ExemptionStatus;
 use AIArmada\Tax\Support\TaxOwnerScope;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * Represents a tax exemption for a customer or entity.
@@ -46,13 +51,15 @@ class TaxExemption extends Model
     /** @use HasFactory<TaxExemptionFactory> */
     use HasFactory;
 
-    use HasOwner;
+    use HasOwner {
+        scopeForOwner as baseScopeForOwner;
+    }
     use HasOwnerScopeConfig;
     use HasUuids;
 
     protected static string $ownerScopeConfigKey = 'tax.features.owner';
 
-    use LogsActivity;
+    use LogsCommerceActivity;
 
     protected $fillable = [
         'owner_type',
@@ -72,21 +79,21 @@ class TaxExemption extends Model
     ];
 
     /**
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'status' => ExemptionStatus::class,
-        'verified_at' => 'datetime',
-        'starts_at' => 'datetime',
-        'expires_at' => 'datetime',
-    ];
-
-    /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'status' => ExemptionStatus::Pending,
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => ExemptionStatus::class,
+            'verified_at' => 'datetime',
+            'starts_at' => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -106,14 +113,42 @@ class TaxExemption extends Model
             }
 
             if ($exemption->owner_type === null && $exemption->owner_id === null) {
-                $exemption->assignOwner($owner);
+                if ($exemption->exists) {
+                    throw new AuthorizationException('Cannot mutate global tax exemptions without explicit global context.');
+                }
+
+                if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
+                    $exemption->assignOwner($owner);
+                }
             }
 
             if (! $exemption->belongsToOwner($owner)) {
                 throw new AuthorizationException('Cannot write tax exemptions outside the current owner scope.');
             }
 
-            if ($exemption->tax_zone_id !== null) {
+            if (
+                $exemption->exemptable_id !== null
+                && is_string($exemption->exemptable_type)
+                && $exemption->exemptable_type !== ''
+                && (
+                    $exemption->isDirty('exemptable_type')
+                    || $exemption->isDirty('exemptable_id')
+                    || ! $exemption->exists
+                )
+                && class_exists($exemption->exemptable_type)
+                && is_a($exemption->exemptable_type, Model::class, true)
+                && in_array(HasOwner::class, class_uses_recursive($exemption->exemptable_type), true)
+            ) {
+                OwnerWriteGuard::findOrFailForOwner(
+                    modelClass: $exemption->exemptable_type,
+                    id: $exemption->exemptable_id,
+                    owner: $owner,
+                    includeGlobal: false,
+                    message: 'Exemptable entity is not accessible in the current owner scope.',
+                );
+            }
+
+            if ($exemption->tax_zone_id !== null && ($exemption->isDirty('tax_zone_id') || ! $exemption->exists)) {
                 $zoneExists = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
                     ->whereKey($exemption->tax_zone_id)
                     ->exists();
@@ -172,7 +207,7 @@ class TaxExemption extends Model
      */
     public function scopeActive(Builder $query): Builder
     {
-        $now = now();
+        $now = CarbonImmutable::now();
 
         return $query->where('status', ExemptionStatus::Approved)
             ->where(function ($q) use ($now): void {
@@ -229,6 +264,26 @@ class TaxExemption extends Model
         });
     }
 
+    /**
+     * Scope query to the specified owner, respecting the `include_global` config.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
+    {
+        if (! config('tax.features.owner.enabled', false)) {
+            return $query;
+        }
+
+        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
+
+        /** @var Builder<static> $scoped */
+        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
+
+        return $scoped;
+    }
+
     // =========================================================================
     // HELPERS
     // =========================================================================
@@ -239,11 +294,13 @@ class TaxExemption extends Model
             return false;
         }
 
-        if ($this->starts_at && $this->starts_at > now()) {
+        $now = CarbonImmutable::now();
+
+        if ($this->starts_at && $this->starts_at > $now) {
             return false;
         }
 
-        if ($this->expires_at && $this->expires_at < now()) {
+        if ($this->expires_at && $this->expires_at < $now) {
             return false;
         }
 
@@ -252,7 +309,7 @@ class TaxExemption extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at !== null && $this->expires_at < now();
+        return $this->expires_at !== null && $this->expires_at < CarbonImmutable::now();
     }
 
     public function isPending(): bool
@@ -285,20 +342,12 @@ class TaxExemption extends Model
 
     public function approve(): self
     {
-        $this->status = ExemptionStatus::Approved;
-        $this->verified_at = now();
-        $this->save();
-
-        return $this;
+        return app(ApproveExemptionAction::class)->execute($this);
     }
 
     public function reject(string $reason): self
     {
-        $this->status = ExemptionStatus::Rejected;
-        $this->rejection_reason = $reason;
-        $this->save();
-
-        return $this;
+        return app(RejectExemptionAction::class)->execute($this, $reason);
     }
 
     // =========================================================================

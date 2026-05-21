@@ -41,6 +41,7 @@ return [
         'owner' => [
             'enabled' => env('TAX_OWNER_ENABLED', false),
             'include_global' => false,
+            'auto_assign_on_create' => env('TAX_OWNER_AUTO_ASSIGN', true),
         ],
 
         'zone_resolution' => [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Models;
 
+use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxClassFactory;
@@ -14,8 +15,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * Represents a tax class for categorizing products.
@@ -43,7 +43,7 @@ class TaxClass extends Model
 
     protected static string $ownerScopeConfigKey = 'tax.features.owner';
 
-    use LogsActivity;
+    use LogsCommerceActivity;
 
     protected $fillable = [
         'owner_type',
@@ -57,15 +57,6 @@ class TaxClass extends Model
     ];
 
     /**
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'is_default' => 'boolean',
-        'is_active' => 'boolean',
-        'position' => 'integer',
-    ];
-
-    /**
      * @var array<string, mixed>
      */
     protected $attributes = [
@@ -73,6 +64,15 @@ class TaxClass extends Model
         'is_active' => true,
         'position' => 0,
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+            'is_active' => 'boolean',
+            'position' => 'integer',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -92,12 +92,64 @@ class TaxClass extends Model
             }
 
             if ($class->owner_type === null && $class->owner_id === null) {
-                $class->assignOwner($owner);
+                if ($class->exists) {
+                    throw new AuthorizationException('Cannot mutate global tax classes without explicit global context.');
+                }
+
+                if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
+                    $class->assignOwner($owner);
+                }
             }
 
             if (! $class->belongsToOwner($owner)) {
                 throw new AuthorizationException('Cannot write tax classes outside the current owner scope.');
             }
+        });
+
+        static::deleting(function (self $class): void {
+            if (TaxOwnerScope::isEnabled()) {
+                $owner = TaxOwnerScope::resolveOwner();
+
+                if ($owner === null) {
+                    if ($class->owner_type !== null || $class->owner_id !== null) {
+                        throw new AuthorizationException('Cannot delete owned tax classes without an owner context.');
+                    }
+                } elseif (! $class->belongsToOwner($owner)) {
+                    throw new AuthorizationException('Cannot delete tax classes outside the current owner scope.');
+                }
+            }
+
+            $query = TaxRate::query()
+                ->withoutOwnerScope()
+                ->where('tax_class', $class->slug);
+
+            if ($class->owner_type === null && $class->owner_id === null) {
+                $query
+                    ->whereNull('owner_type')
+                    ->whereNull('owner_id');
+            } else {
+                $query
+                    ->where('owner_type', $class->owner_type)
+                    ->where('owner_id', $class->owner_id);
+            }
+
+            $replacementClassSlug = static::query()
+                ->withoutOwnerScope()
+                ->whereKeyNot($class->getKey())
+                ->when(
+                    $class->owner_type === null && $class->owner_id === null,
+                    fn (Builder $builder): Builder => $builder
+                        ->whereNull('owner_type')
+                        ->whereNull('owner_id'),
+                    fn (Builder $builder): Builder => $builder
+                        ->where('owner_type', $class->owner_type)
+                        ->where('owner_id', $class->owner_id),
+                )
+                ->orderByDesc('is_default')
+                ->orderBy('position')
+                ->value('slug');
+
+            $query->update(['tax_class' => $replacementClassSlug ?? 'standard']);
         });
     }
 

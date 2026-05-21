@@ -265,17 +265,34 @@ class TaxCalculator implements TaxCalculatorInterface
         }
 
         $customerId = $context['customer_id'] ?? null;
-        $customerType = $context['customer_type'] ?? 'App\\Models\\Customer';
+        /** @var string|null $customerType */
+        $customerType = $context['customer_type'] ?? null;
 
         if (! $customerId) {
             return null;
         }
 
+        $candidateTypes = [];
+
+        if (is_string($customerType) && $customerType !== '') {
+            $candidateTypes[] = $customerType;
+        } else {
+            if (class_exists('AIArmada\\Customers\\Models\\Customer')) {
+                $candidateTypes[] = 'AIArmada\\Customers\\Models\\Customer';
+            }
+
+            $candidateTypes[] = 'App\\Models\\Customer';
+            $candidateTypes[] = 'App\\Models\\User';
+        }
+
+        /** @var array<int, string> $candidateTypes */
+        $candidateTypes = array_values(array_unique($candidateTypes));
+
         $zoneId = $context['zone_id'] ?? null;
 
         $query = TaxOwnerScope::applyToOwnedQuery(TaxExemption::query())
             ->where('exemptable_id', $customerId)
-            ->where('exemptable_type', $customerType)
+            ->whereIn('exemptable_type', $candidateTypes)
             ->active()
             ->forZone($zoneId);
 

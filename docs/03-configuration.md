@@ -280,16 +280,26 @@ When running a multi-tenant application:
 
 ### Owner Resolution
 
-The package uses `commerce-support`'s `OwnerContext` to resolve the current owner:
+The package uses `commerce-support`'s `OwnerContext` to resolve the current owner. The context is typically set by middleware in HTTP requests, or manually for console commands and jobs.
 
+**HTTP Contexts (Middleware):**
 ```php
 use AIArmada\CommerceSupport\Support\OwnerContext;
 
-// Set owner context
-OwnerContext::set($tenant);
+// Middleware automatically sets the request owner via OwnerResolverInterface
+// All queries are scoped to current owner
+$zones = TaxZone::all(); // Only current tenant's zones
+```
 
-// All tax queries are now scoped
-$zones = TaxZone::all(); // Only this tenant's zones
+**Non-HTTP Contexts (Jobs, Commands):**
+```php
+use AIArmada\CommerceSupport\Support\OwnerContext;
+
+// For queued jobs or console commands, use withOwner()
+OwnerContext::withOwner($tenant, function () {
+    $zones = TaxZone::all(); // Only this tenant's zones
+    // perform tax calculations or operations
+});
 ```
 
 ## Price Inclusion Mode

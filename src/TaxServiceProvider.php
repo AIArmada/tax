@@ -16,6 +16,7 @@ final class TaxServiceProvider extends PackageServiceProvider
         $package
             ->name('tax')
             ->hasConfigFile()
+            ->runsMigrations()
             ->discoversMigrations();
     }
 

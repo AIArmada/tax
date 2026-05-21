@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Models;
 
+use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxRateFactory;
@@ -13,19 +14,23 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * Represents a tax rate for a specific zone and tax class.
  *
  * @property string $id
+ * @property string|null $owner_type
+ * @property string|null $owner_id
  * @property string $zone_id
- * @property string $tax_class
+ * @property string|null $tax_class
  * @property string $name
+ * @property string|null $description
  * @property int $rate
  * @property bool $is_compound
+ * @property bool $is_shipping
  * @property int $priority
  * @property bool $is_active
  */
@@ -34,13 +39,15 @@ class TaxRate extends Model
     /** @use HasFactory<TaxRateFactory> */
     use HasFactory;
 
-    use HasOwner;
+    use HasOwner {
+        scopeForOwner as baseScopeForOwner;
+    }
     use HasOwnerScopeConfig;
     use HasUuids;
 
     protected static string $ownerScopeConfigKey = 'tax.features.owner';
 
-    use LogsActivity;
+    use LogsCommerceActivity;
 
     protected $fillable = [
         'owner_type',
@@ -57,17 +64,6 @@ class TaxRate extends Model
     ];
 
     /**
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'rate' => 'integer', // Stored as basis points (600 = 6.00%)
-        'is_compound' => 'boolean',
-        'is_shipping' => 'boolean',
-        'priority' => 'integer',
-        'is_active' => 'boolean',
-    ];
-
-    /**
      * @var array<string, mixed>
      */
     protected $attributes = [
@@ -77,6 +73,17 @@ class TaxRate extends Model
         'priority' => 0,
         'is_active' => true,
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'rate' => 'integer', // Stored as basis points (600 = 6.00%)
+            'is_compound' => 'boolean',
+            'is_shipping' => 'boolean',
+            'priority' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -93,7 +100,13 @@ class TaxRate extends Model
                 }
             } else {
                 if ($rate->owner_type === null && $rate->owner_id === null) {
-                    $rate->assignOwner($owner);
+                    if ($rate->exists) {
+                        throw new AuthorizationException('Cannot mutate global tax rates without explicit global context.');
+                    }
+
+                    if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
+                        $rate->assignOwner($owner);
+                    }
                 }
 
                 if (! $rate->belongsToOwner($owner)) {
@@ -101,12 +114,14 @@ class TaxRate extends Model
                 }
             }
 
-            $zoneExists = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
-                ->whereKey($rate->zone_id)
-                ->exists();
+            if ($rate->isDirty('zone_id') || ! $rate->exists) {
+                $zoneExists = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+                    ->whereKey($rate->zone_id)
+                    ->exists();
 
-            if (! $zoneExists) {
-                throw new AuthorizationException('Tax zone is not accessible in the current owner scope.');
+                if (! $zoneExists) {
+                    throw new AuthorizationException('Tax zone is not accessible in the current owner scope.');
+                }
             }
         });
     }
@@ -183,6 +198,26 @@ class TaxRate extends Model
     public function scopeForZone(Builder $query, string $zoneId): Builder
     {
         return $query->where('zone_id', $zoneId);
+    }
+
+    /**
+     * Scope query to the specified owner, respecting the `include_global` config.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
+    {
+        if (! config('tax.features.owner.enabled', false)) {
+            return $query;
+        }
+
+        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
+
+        /** @var Builder<static> $scoped */
+        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
+
+        return $scoped;
     }
 
     // =========================================================================

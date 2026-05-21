@@ -68,30 +68,4 @@ class TaxSettings extends Settings
     {
         return 'tax';
     }
-
-    /**
-     * Calculate tax amount for a given subtotal.
-     */
-    public function calculateTax(int $subtotalMinorUnits): int
-    {
-        if (! $this->enabled) {
-            return 0;
-        }
-
-        return (int) round($subtotalMinorUnits * ($this->defaultTaxRate / 100));
-    }
-
-    /**
-     * Extract tax from a tax-inclusive price.
-     */
-    public function extractTax(int $inclusivePriceMinorUnits): int
-    {
-        if (! $this->enabled) {
-            return 0;
-        }
-
-        $taxMultiplier = $this->defaultTaxRate / (100 + $this->defaultTaxRate);
-
-        return (int) round($inclusivePriceMinorUnits * $taxMultiplier);
-    }
 }

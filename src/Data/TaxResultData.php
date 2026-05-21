@@ -18,6 +18,7 @@ class TaxResultData extends Data
         public int $taxAmount,
         public string $rateId,
         public string $rateName,
+        /** Rate in basis points (e.g. 600 = 6.00%) */
         public int $ratePercentage,
         public string $zoneId,
         public string $zoneName,
@@ -31,13 +32,13 @@ class TaxResultData extends Data
      */
     public function isExempt(): bool
     {
-        return $this->exemptionReason !== null || $this->ratePercentage === 0;
+        return $this->exemptionReason !== null;
     }
 
     /**
      * Get the formatted tax amount.
      */
-    public function getFormattedAmount(string $currency = 'RM'): string
+    public function getFormattedAmount(string $currency = '$'): string
     {
         return $currency . ' ' . number_format($this->taxAmount / 100, 2);
     }
@@ -71,6 +72,12 @@ class TaxResultData extends Data
      */
     public function hasCompoundTaxes(): bool
     {
-        return count($this->breakdown) > 1;
+        foreach ($this->breakdown as $entry) {
+            if ($entry['is_compound']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -267,6 +267,28 @@ $rate = TaxRate::factory()
     ->create();
 ```
 
+## Multi-Tenant Setup
+
+import Aside from "@components/Aside.astro"
+
+<Aside variant="warning">
+  Owner scoping is **disabled by default** (`TAX_OWNER_ENABLED=false`). In a multi-tenant deployment every tenant will see all tax zones and rates unless you enable it. Set `TAX_OWNER_ENABLED=true` and bind `OwnerResolverInterface` before going live.
+</Aside>
+
+```env
+TAX_OWNER_ENABLED=true
+```
+
+Bind the resolver in `AppServiceProvider::register()`:
+
+```php
+use AIArmada\CommerceSupport\Contracts\OwnerResolverInterface;
+
+$this->app->bind(OwnerResolverInterface::class, CurrentTenantResolver::class);
+```
+
+See [Multitenancy](./07-multitenancy.md) for full details.
+
 ## Next Steps
 
 - [Configure tax settings](03-configuration.md)
