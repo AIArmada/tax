@@ -4,7 +4,42 @@ title: Overview
 
 # Tax Package
 
-A comprehensive tax calculation engine for Laravel commerce applications. This package provides flexible, zone-based tax calculation with support for multiple rates, compound taxes, tax exemptions, and full multi-tenancy support.
+## Purpose
+
+The `aiarmada/tax` package owns zone-based tax calculation, tax configuration data, and tax exemption workflows for the Commerce ecosystem.
+
+## What this package owns
+
+- Tax zones, tax classes, tax rates, and tax exemptions
+- The default `TaxCalculatorInterface` implementation and `TaxResultData` output contract
+- Tax runtime settings via `TaxSettings` and `TaxZoneSettings`
+- Tax-owner scoping behavior when enabled through configuration
+
+## What this package does not own
+
+- Checkout or order total orchestration; consuming packages decide when tax is calculated and persisted
+- Invoice or document rendering (`aiarmada/docs`)
+- Filament admin UI (`aiarmada/filament-tax`)
+- External SaaS tax providers such as TaxJar or Avalara, unless the host app swaps the calculator implementation
+
+## Related packages
+
+- [`aiarmada/filament-tax`](../../filament-tax/docs/01-overview.md) — Filament resources, widgets, and tax settings UI
+- [`aiarmada/cart`](../../cart/docs/01-overview.md) — cart totals and tax entry points
+- [`aiarmada/orders`](../../orders/docs/01-overview.md) — order records that store computed tax outcomes
+- [`aiarmada/commerce-support`](../../commerce-support/docs/01-overview.md) — owner context and shared infrastructure
+
+## Main models services or surfaces
+
+- **Models** — `TaxZone`, `TaxClass`, `TaxRate`, `TaxExemption`
+- **Contracts and DTOs** — `TaxCalculatorInterface`, `TaxResultData`
+- **Services and settings** — `TaxCalculator`, `TaxSettings`, `TaxZoneSettings`, `TaxOwnerScope`
+
+## Owner scoping and security notes
+
+- Owner enforcement is controlled by `tax.features.owner.enabled`, `tax.features.owner.include_global`, and `tax.features.owner.auto_assign_on_create`
+- Missing owner context is not the same as global access; non-request surfaces should set owner context explicitly through `commerce-support`
+- Packages that submit zone, class, rate, or exemption identifiers must validate them in the current owner scope instead of trusting filtered UI options
 
 ## Key Features
 
@@ -181,7 +216,17 @@ echo $result->getSummary();        // "SST (6.00%)"
 
 | Package | Description |
 |---------|-------------|
-| `aiarmada/filament-tax` | Filament admin panel for tax management |
-| `aiarmada/cart` | Shopping cart with tax calculation integration |
-| `aiarmada/orders` | Order management with tax recording |
-| `aiarmada/commerce-support` | Shared utilities and multi-tenancy |
+| [`aiarmada/filament-tax`](../../filament-tax/docs/01-overview.md) | Filament admin panel for tax management |
+| [`aiarmada/cart`](../../cart/docs/01-overview.md) | Shopping cart with tax calculation integration |
+| [`aiarmada/orders`](../../orders/docs/01-overview.md) | Order management with tax recording |
+| [`aiarmada/commerce-support`](../../commerce-support/docs/01-overview.md) | Shared utilities and multi-tenancy |
+
+## Read next
+
+- [Installation](02-installation.md)
+- [Configuration](03-configuration.md)
+- [Usage](04-usage.md)
+- [Exemptions](05-exemptions.md)
+- [Models](06-models.md)
+- [Multitenancy](07-multitenancy.md)
+- [Filament Tax overview](../../filament-tax/docs/01-overview.md)

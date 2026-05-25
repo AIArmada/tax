@@ -108,16 +108,17 @@ return [
 | `features.enabled` | bool | `true` | Master switch for tax calculation |
 | `features.owner.enabled` | bool | `false` | Enable multi-tenancy scoping |
 | `features.owner.include_global` | bool | `false` | Include global (ownerless) records |
+| `features.owner.auto_assign_on_create` | bool | `true` | Automatically stamp new records with the current owner when owner mode is enabled |
 | `features.exemptions.enabled` | bool | `true` | Enable tax exemption checking |
 
 ### Zone Resolution Options
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `zone_resolution.use_customer_address` | bool | `true` | Auto-detect zone from customer address |
-| `zone_resolution.address_priority` | string | `'shipping'` | Which address to use (`shipping` or `billing`) |
-| `zone_resolution.unknown_zone_behavior` | string | `'default'` | Behavior when no zone matches |
-| `zone_resolution.fallback_zone_id` | string\|null | `null` | Specific zone UUID to use as fallback |
+| `features.zone_resolution.use_customer_address` | bool | `true` | Auto-detect zone from customer address |
+| `features.zone_resolution.address_priority` | string | `'shipping'` | Which address to use (`shipping` or `billing`) |
+| `features.zone_resolution.unknown_zone_behavior` | string | `'default'` | Behavior when no zone matches |
+| `features.zone_resolution.fallback_zone_id` | string\|null | `null` | Specific zone UUID to use as fallback |
 
 ## Environment Variables
 
@@ -131,6 +132,7 @@ TAX_ON_SHIPPING=true
 
 # Multi-tenancy
 TAX_OWNER_ENABLED=false
+TAX_OWNER_AUTO_ASSIGN=true
 
 # Database (for PostgreSQL)
 TAX_JSON_COLUMN_TYPE=jsonb
@@ -231,8 +233,10 @@ Returns zero tax without throwing an error.
 
 ```php
 // config/tax.php
-'zone_resolution' => [
-    'unknown_zone_behavior' => 'zero',
+'features' => [
+    'zone_resolution' => [
+        'unknown_zone_behavior' => 'zero',
+    ],
 ],
 ```
 
@@ -244,8 +248,10 @@ Throws `TaxZoneNotFoundException`. Use when tax is mandatory.
 use AIArmada\Tax\Exceptions\TaxZoneNotFoundException;
 
 // config/tax.php
-'zone_resolution' => [
-    'unknown_zone_behavior' => 'error',
+'features' => [
+    'zone_resolution' => [
+        'unknown_zone_behavior' => 'error',
+    ],
 ],
 
 try {
@@ -267,6 +273,7 @@ When running a multi-tenant application:
     'owner' => [
         'enabled' => true,
         'include_global' => false, // Set to true to include shared records
+        'auto_assign_on_create' => true,
     ],
 ],
 ```
