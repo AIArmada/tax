@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Models;
 
+use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
 use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
+use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
@@ -30,8 +32,10 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property bool $is_active
  * @property int $position
  */
-class TaxClass extends Model
+class TaxClass extends Model implements Auditable
 {
+    use HasCommerceAudit;
+
     /** @use HasFactory<TaxClassFactory> */
     use HasFactory;
 
