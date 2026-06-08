@@ -33,7 +33,7 @@ return new class extends Migration
             // Flags
             $table->boolean('is_active')->default(true);
 
-            $table->timestamps();
+            $table->timestampsTz();
 
             // Indexes
             $table->index(['zone_id', 'tax_class', 'is_active']);

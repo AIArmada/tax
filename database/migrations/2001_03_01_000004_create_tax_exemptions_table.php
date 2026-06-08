@@ -30,14 +30,14 @@ return new class extends Migration
             $table->text('rejection_reason')->nullable();
 
             // Verification
-            $table->timestamp('verified_at')->nullable();
+            $table->timestampTz('verified_at')->nullable();
             $table->uuid('verified_by')->nullable();
 
             // Validity period
-            $table->timestamp('starts_at')->nullable();
-            $table->timestamp('expires_at')->nullable();
+            $table->timestampTz('starts_at')->nullable();
+            $table->timestampTz('expires_at')->nullable();
 
-            $table->timestamps();
+            $table->timestampsTz();
 
             // Indexes
             $table->index(['exemptable_type', 'exemptable_id', 'status']);
