@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AIArmada\Tax\Services\ZoneResolver;
+
+use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
+use AIArmada\Tax\Models\TaxZone;
+use AIArmada\Tax\Support\TaxOwnerScope;
+
+final class AddressZoneResolver implements TaxZoneResolverInterface
+{
+    private bool $enabled;
+
+    private string $addressPriority;
+
+    public function __construct(?bool $enabled = null, ?string $addressPriority = null)
+    {
+        $this->enabled = $enabled ?? (bool) config('tax.features.zone_resolution.use_customer_address', true);
+        $this->addressPriority = $addressPriority ?? (string) config('tax.features.zone_resolution.address_priority', 'shipping');
+    }
+
+    public function resolve(?string $zoneId, array $context): ?TaxZone
+    {
+        if (! $this->enabled) {
+            return null;
+        }
+
+        $address = $context["{$this->addressPriority}_address"] ?? $context['address'] ?? null;
+
+        if ($address === null) {
+            return null;
+        }
+
+        return $this->findZoneByAddress(
+            $address['country'] ?? 'MY',
+            $address['state'] ?? null,
+            $address['postcode'] ?? null,
+        );
+    }
+
+    private function findZoneByAddress(string $country, ?string $state, ?string $postcode): ?TaxZone
+    {
+        return TaxOwnerScope::applyToOwnedQuery(TaxZone::forAddress($country, $state, $postcode))
+            ->get()
+            ->first(fn (TaxZone $zone) => $zone->matchesAddress($country, $state, $postcode));
+    }
+}

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Data;
 
+use AIArmada\CommerceSupport\Support\MoneyFormatter;
+use Akaunting\Money\Money;
 use Spatie\LaravelData\Data;
 
-/**
- * Data Transfer Object representing a tax calculation result.
- */
 class TaxResultData extends Data
 {
     /**
@@ -25,35 +24,24 @@ class TaxResultData extends Data
         public bool $includedInPrice = false,
         public ?string $exemptionReason = null,
         public array $breakdown = [],
+        public string $currency = 'MYR',
     ) {}
 
-    /**
-     * Check if the result is tax-exempt.
-     */
     public function isExempt(): bool
     {
         return $this->exemptionReason !== null;
     }
 
-    /**
-     * Get the formatted tax amount.
-     */
-    public function getFormattedAmount(string $currency = '$'): string
+    public function getFormattedAmount(?string $currency = null): string
     {
-        return $currency . ' ' . number_format($this->taxAmount / 100, 2);
+        return MoneyFormatter::formatMinor($this->taxAmount, $currency ?? $this->currency);
     }
 
-    /**
-     * Get the rate as a formatted percentage.
-     */
     public function getFormattedRate(): string
     {
         return number_format($this->ratePercentage / 100, 2) . '%';
     }
 
-    /**
-     * Get a summary of the tax calculation.
-     */
     public function getSummary(): string
     {
         if ($this->isExempt()) {
@@ -67,9 +55,6 @@ class TaxResultData extends Data
         );
     }
 
-    /**
-     * Check if this result has compound taxes.
-     */
     public function hasCompoundTaxes(): bool
     {
         foreach ($this->breakdown as $entry) {
@@ -79,5 +64,12 @@ class TaxResultData extends Data
         }
 
         return false;
+    }
+
+    public function getMoney(): Money
+    {
+        $currency = $this->currency;
+
+        return Money::{$currency}($this->taxAmount);
     }
 }

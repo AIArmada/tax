@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AIArmada\Tax\Actions;
+namespace AIArmada\Tax\Actions\Exemption;
 
 use AIArmada\Tax\Enums\ExemptionStatus;
 use AIArmada\Tax\Models\TaxExemption;
