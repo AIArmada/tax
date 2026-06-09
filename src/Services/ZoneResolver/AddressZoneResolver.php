@@ -10,23 +10,41 @@ use AIArmada\Tax\Support\TaxOwnerScope;
 
 final class AddressZoneResolver implements TaxZoneResolverInterface
 {
-    private bool $enabled;
+    private ?bool $enabled;
 
-    private string $addressPriority;
+    private ?string $addressPriority;
 
     public function __construct(?bool $enabled = null, ?string $addressPriority = null)
     {
-        $this->enabled = $enabled ?? (bool) config('tax.features.zone_resolution.use_customer_address', true);
-        $this->addressPriority = $addressPriority ?? (string) config('tax.features.zone_resolution.address_priority', 'shipping');
+        $this->enabled = $enabled;
+        $this->addressPriority = $addressPriority;
+    }
+
+    private function isEnabled(): bool
+    {
+        if ($this->enabled !== null) {
+            return $this->enabled;
+        }
+
+        return (bool) config('tax.features.zone_resolution.use_customer_address', true);
+    }
+
+    private function getAddressPriority(): string
+    {
+        if ($this->addressPriority !== null) {
+            return $this->addressPriority;
+        }
+
+        return (string) config('tax.features.zone_resolution.address_priority', 'shipping');
     }
 
     public function resolve(?string $zoneId, array $context): ?TaxZone
     {
-        if (! $this->enabled) {
+        if (! $this->isEnabled()) {
             return null;
         }
 
-        $address = $context["{$this->addressPriority}_address"] ?? $context['address'] ?? null;
+        $address = $context[$this->getAddressPriority() . '_address'] ?? $context['address'] ?? null;
 
         if ($address === null) {
             return null;

@@ -17,8 +17,26 @@ final class DefaultZoneResolver implements TaxZoneResolverInterface
 
     public function __construct(?string $fallbackZoneId = null, ?string $unknownBehavior = null)
     {
-        $this->fallbackZoneId = $fallbackZoneId ?? config('tax.features.zone_resolution.fallback_zone_id');
-        $this->unknownBehavior = $unknownBehavior ?? (string) config('tax.features.zone_resolution.unknown_zone_behavior', 'default');
+        $this->fallbackZoneId = $fallbackZoneId;
+        $this->unknownBehavior = $unknownBehavior ?? '';
+    }
+
+    private function getFallbackZoneId(): ?string
+    {
+        if ($this->fallbackZoneId !== null) {
+            return $this->fallbackZoneId;
+        }
+
+        return config('tax.features.zone_resolution.fallback_zone_id');
+    }
+
+    private function getUnknownBehavior(): string
+    {
+        if ($this->unknownBehavior !== '') {
+            return $this->unknownBehavior;
+        }
+
+        return (string) config('tax.features.zone_resolution.unknown_zone_behavior', 'default');
     }
 
     public function resolve(?string $zoneId, array $context): ?TaxZone
@@ -32,9 +50,11 @@ final class DefaultZoneResolver implements TaxZoneResolverInterface
             return $defaultZone;
         }
 
-        if ($this->fallbackZoneId !== null) {
+        $fallbackZoneId = $this->getFallbackZoneId();
+
+        if ($fallbackZoneId !== null) {
             $fallbackZone = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
-                ->whereKey($this->fallbackZoneId)
+                ->whereKey($fallbackZoneId)
                 ->first();
 
             if ($fallbackZone !== null) {
@@ -47,7 +67,7 @@ final class DefaultZoneResolver implements TaxZoneResolverInterface
 
     public function handleUnknown(): TaxZone
     {
-        return match ($this->unknownBehavior) {
+        return match ($this->getUnknownBehavior()) {
             'error' => throw new TaxZoneNotFoundException('No tax zone could be resolved'),
             default => TaxZone::zeroRate(),
         };
