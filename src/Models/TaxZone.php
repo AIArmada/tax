@@ -31,7 +31,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $name
  * @property string $code
  * @property string|null $description
- * @property string $type
+ * @property ZoneType $type
  * @property array|null $countries
  * @property array|null $states
  * @property array|null $postcodes
