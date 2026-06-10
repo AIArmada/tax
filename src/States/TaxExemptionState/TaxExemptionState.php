@@ -75,7 +75,6 @@ abstract class TaxExemptionState extends State
             ->allowTransition(UnderReviewState::class, RejectedState::class)
             ->allowTransition(UnderReviewState::class, RevokedState::class)
             ->allowTransition(ApprovedState::class, ExpiredState::class)
-            ->allowTransition(ApprovedState::class, RevokedState::class)
-        ;
+            ->allowTransition(ApprovedState::class, RevokedState::class);
     }
 }

@@ -13,10 +13,7 @@ use AIArmada\Tax\Actions\Exemption\ApproveExemptionAction;
 use AIArmada\Tax\Actions\Exemption\RejectExemptionAction;
 use AIArmada\Tax\Database\Factories\TaxExemptionFactory;
 use AIArmada\Tax\Enums\ExemptionStatus;
-use AIArmada\Tax\States\TaxExemptionState\ApprovedState;
 use AIArmada\Tax\States\TaxExemptionState\ExpiredState;
-use AIArmada\Tax\States\TaxExemptionState\PendingState;
-use AIArmada\Tax\States\TaxExemptionState\RejectedState;
 use AIArmada\Tax\States\TaxExemptionState\RevokedState;
 use AIArmada\Tax\States\TaxExemptionState\TaxExemptionState;
 use AIArmada\Tax\States\TaxExemptionState\UnderReviewState;
@@ -96,9 +93,7 @@ class TaxExemption extends Model implements Auditable
     /**
      * @var array<string, mixed>
      */
-    protected $attributes = [
-        'status' => ExemptionStatus::Pending,
-    ];
+    protected $attributes = [];
 
     protected function casts(): array
     {
