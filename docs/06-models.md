@@ -392,6 +392,127 @@ public function getActivitylogOptions(): LogOptions
 }
 ```
 
+---
+
+## Contracts / Interfaces
+
+### TaxRateApplierInterface
+
+Responsible for applying one or more tax rates to an amount and computing the total tax with a breakdown.
+
+```php
+use AIArmada\Tax\Contracts\TaxRateApplierInterface;
+use AIArmada\Tax\Models\TaxRate;
+use Illuminate\Database\Eloquent\Collection;
+
+class TaxCalculator
+{
+    public function __construct(
+        private TaxRateApplierInterface $rateApplier
+    ) {}
+
+    public function calculate(
+        int $amountInCents,
+        Collection $rates,
+        bool $pricesIncludeTax
+    ): array {
+        return $this->rateApplier->apply(
+            amountInCents: $amountInCents,
+            rates: $rates,
+            pricesIncludeTax: $pricesIncludeTax
+        );
+    }
+}
+```
+
+#### Method
+
+```php
+public function apply(
+    int $amountInCents,
+    Collection $rates,
+    bool $pricesIncludeTax
+): array{
+    total: int,
+    primary_rate: TaxRate,
+    breakdown: array<int, array{
+        name: string,
+        rate: int,
+        amount: int,
+        is_compound: bool
+    }>
+}
+```
+
+#### Implementation
+
+The default implementation is `StandardRateApplier`:
+
+```php
+use AIArmada\Tax\Services\RateApplier\StandardRateApplier;
+
+// Resolved automatically by the container
+$applier = app(TaxRateApplierInterface::class); // StandardRateApplier
+```
+
+It handles:
+- **Non-compound rates** — applied to the base amount
+- **Compound rates** — applied to (base + previously applied taxes)
+- **Tax-inclusive pricing** — extracting tax from inclusive amounts
+
+### TaxZoneResolverInterface
+
+Responsible for resolving a `TaxZone` from a zone ID and/or address context.
+
+```php
+use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
+
+class CheckoutService
+{
+    public function __construct(
+        private TaxZoneResolverInterface $zoneResolver
+    ) {}
+
+    public function resolveForOrder(Order $order): ?TaxZone
+    {
+        return $this->zoneResolver->resolve(
+            zoneId: $order->tax_zone_id,
+            context: [
+                'shipping_address' => $order->shippingAddress?->toArray() ?? [],
+                'billing_address' => $order->billingAddress?->toArray() ?? [],
+            ]
+        );
+    }
+}
+```
+
+#### Method
+
+```php
+public function resolve(?string $zoneId, array $context): ?TaxZone;
+```
+
+#### Resolution Chain
+
+The default resolver chain (`CompositeZoneResolver`) tries each strategy in order:
+
+1. **ZoneIdResolver** — returns the zone by exact UUID if `$zoneId` is provided
+2. **AddressZoneResolver** — matches zones against the shipping/billing address
+3. **DefaultZoneResolver** — returns the zone marked with `is_default = true`
+4. Falls back to the configured `fallback_zone_id` or `unknown_zone_behavior`
+
+#### Custom Implementation
+
+Swap the resolver at the container level:
+
+```php
+// In a service provider
+$this->app->singleton(
+    TaxZoneResolverInterface::class,
+    CustomTaxZoneResolver::class
+);
+```
+
 ### Cascade Deletes
 
 `TaxZone` implements application-level cascade deletes:

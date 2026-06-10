@@ -263,6 +263,68 @@ try {
 }
 ```
 
+## Zone Resolver Configuration
+
+The zone resolution chain is composed of configurable strategies resolved from the container via `TaxZoneResolverInterface`.
+
+### Default Resolution Chain
+
+```
+ZoneIdResolver → AddressZoneResolver → DefaultZoneResolver → Fallback/Behavior
+```
+
+Each resolver is tried in order; the first to return a non-null zone wins.
+
+### Binding Order
+
+The `CompositeZoneResolver` is the default binding for `TaxZoneResolverInterface`. It accepts an ordered array of sub-resolvers:
+
+```php
+// In TaxServiceProvider
+$this->app->singleton(TaxZoneResolverInterface::class, function ($app) {
+    return new CompositeZoneResolver([
+        $app->make(ZoneIdResolver::class),
+        $app->make(AddressZoneResolver::class),
+        $app->make(DefaultZoneResolver::class),
+    ]);
+});
+```
+
+### Customizing the Chain
+
+To reorder, add, or remove resolvers, rebind in your own service provider:
+
+```php
+$this->app->extend(TaxZoneResolverInterface::class, function ($composite, $app) {
+    // Insert a geo-IP resolver before address matching
+    return new CompositeZoneResolver([
+        $app->make(GeoIpZoneResolver::class), // Custom
+        $app->make(AddressZoneResolver::class),
+        $app->make(DefaultZoneResolver::class),
+    ]);
+});
+```
+
+### Resolver Reference
+
+| Resolver | Class | Purpose |
+|----------|-------|---------|
+| `ZoneIdResolver` | `Services\ZoneResolver\ZoneIdResolver` | Returns zone by explicit UUID |
+| `AddressZoneResolver` | `Services\ZoneResolver\AddressZoneResolver` | Matches zones against shipping/billing address |
+| `DefaultZoneResolver` | `Services\ZoneResolver\DefaultZoneResolver` | Returns the zone with `is_default = true` |
+| `CompositeZoneResolver` | `Services\ZoneResolver\CompositeZoneResolver` | Orchestrates the chain |
+
+### Address Resolution Behavior
+
+Controlled by `config('tax.features.zone_resolution')`:
+
+| Key | Effect |
+|-----|--------|
+| `use_customer_address` | Enable/disable address-based zone matching |
+| `address_priority` | `'shipping'` or `'billing'` — which address to match against |
+| `unknown_zone_behavior` | Fallback when no resolver matches: `'default'`, `'zero'`, `'error'` |
+| `fallback_zone_id` | Static zone UUID to use when nothing else matches |
+
 ## Multi-Tenancy Configuration
 
 When running a multi-tenant application:

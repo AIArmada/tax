@@ -511,6 +511,72 @@ if (TaxOwnerScope::isEnabled()) {
 }
 ```
 
+## Actions
+
+The package ships with three action classes for exemption management. Actions encapsulate a single business operation and are resolved from the container for testability.
+
+### RequestTaxExemption
+
+Create a new exemption request:
+
+```php
+use AIArmada\Tax\Actions\Exemption\RequestTaxExemption;
+
+$exemption = app(RequestTaxExemption::class)->execute([
+    'exemptable_id' => $customer->id,
+    'exemptable_type' => $customer::class,
+    'tax_zone_id' => $zone->id,
+    'reason' => 'Government agency',
+    'certificate_number' => 'GOV-2024-001',
+]);
+```
+
+### ApproveExemptionAction
+
+Approve a pending exemption:
+
+```php
+use AIArmada\Tax\Actions\Exemption\ApproveExemptionAction;
+
+app(ApproveExemptionAction::class)->execute($exemption);
+// Transitions status to approved, sets verified_at
+```
+
+### RejectExemptionAction
+
+Reject a pending exemption with a reason:
+
+```php
+use AIArmada\Tax\Actions\Exemption\RejectExemptionAction;
+
+app(RejectExemptionAction::class)->execute(
+    $exemption,
+    'Certificate number is invalid'
+);
+// Transitions status to rejected, sets rejection_reason
+```
+
+## Console Commands
+
+### RecalculateTaxRatesCommand
+
+Recalculate and sync tax rates across all zones:
+
+```bash
+php artisan tax:recalculate-rates
+php artisan tax:recalculate-rates --zone={uuid}
+php artisan tax:recalculate-rates --dry-run
+```
+
+### SyncTaxZonesCommand
+
+Sync tax zone configurations:
+
+```bash
+php artisan tax:sync-zones
+php artisan tax:sync-zones --dry-run
+```
+
 ## Integration Example
 
 Complete checkout integration:

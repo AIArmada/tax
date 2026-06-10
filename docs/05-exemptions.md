@@ -362,6 +362,62 @@ $activities = Activity::where('log_name', 'tax')
     ->get();
 ```
 
+## Action-Based Exemption Management
+
+The package provides dedicated action classes that encapsulate exemption operations with proper state transitions and side effects.
+
+### Requesting an Exemption
+
+```php
+use AIArmada\Tax\Actions\Exemption\RequestTaxExemption;
+
+$exemption = app(RequestTaxExemption::class)->execute([
+    'exemptable_id' => $customer->id,
+    'exemptable_type' => $customer::class,
+    'tax_zone_id' => $zone->id,
+    'reason' => 'Registered charity - Tax ID: 12345',
+    'certificate_number' => 'CHAR-2024-12345',
+    'expires_at' => now()->addYear(),
+]);
+```
+
+The action creates the exemption with `pending` status automatically.
+
+### Approving via Action
+
+```php
+use AIArmada\Tax\Actions\Exemption\ApproveExemptionAction;
+
+app(ApproveExemptionAction::class)->execute($exemption);
+// Transitions status via ModelStates, sets verified_at
+```
+
+Unlike the model's `$exemption->approve()` shorthand, the action:
+- Uses the `ModelStates` state machine for the status transition
+- Can be dispatched to the queue for async workflows
+- Is testable as a resolved dependency
+
+### Rejecting via Action
+
+```php
+use AIArmada\Tax\Actions\Exemption\RejectExemptionAction;
+
+app(RejectExemptionAction::class)->execute(
+    $exemption,
+    'Certificate number does not match records'
+);
+// Transitions status via ModelStates, sets rejection_reason
+```
+
+### Action vs Model Method
+
+| Concern | Model Method | Action Class |
+|---------|-------------|-------------|
+| State transition | Direct property set | ModelStates state machine |
+| Side effects | None | Testable, DI-friendly |
+| Dependency injection | Manual | Container-resolved |
+| Use case | Simple scripts, seeds | Production workflows, admin UI |
+
 ## Multi-Tenancy
 
 With owner scoping enabled, exemptions are automatically scoped:

@@ -32,8 +32,10 @@ The `aiarmada/tax` package owns zone-based tax calculation, tax configuration da
 ## Main models services or surfaces
 
 - **Models** — `TaxZone`, `TaxClass`, `TaxRate`, `TaxExemption`
-- **Contracts and DTOs** — `TaxCalculatorInterface`, `TaxResultData`
-- **Services and settings** — `TaxCalculator`, `TaxSettings`, `TaxZoneSettings`, `TaxOwnerScope`
+- **Contracts and DTOs** — `TaxCalculatorInterface`, `TaxRateApplierInterface`, `TaxZoneResolverInterface`, `TaxResultData`
+- **Actions** — `RequestTaxExemption`, `ApproveExemptionAction`, `RejectExemptionAction`
+- **Console Commands** — `RecalculateTaxRatesCommand`, `SyncTaxZonesCommand`
+- **Services and settings** — `TaxCalculator`, `StandardRateApplier`, `AddressZoneResolver`, `CompositeZoneResolver`, `DefaultZoneResolver`, `ZoneIdResolver`, `TaxSettings`, `TaxZoneSettings`, `TaxOwnerScope`
 
 ## Owner scoping and security notes
 
@@ -153,8 +155,19 @@ packages/tax/
 │       └── create_tax_zone_settings.php
 ├── docs/                            # This documentation
 └── src/
+    ├── Actions/
+    │   └── Exemption/
+    │       ├── RequestTaxExemption.php
+    │       ├── ApproveExemptionAction.php
+    │       └── RejectExemptionAction.php
+    ├── Console/
+    │   └── Commands/
+    │       ├── RecalculateTaxRatesCommand.php
+    │       └── SyncTaxZonesCommand.php
     ├── Contracts/
-    │   └── TaxCalculatorInterface.php
+    │   ├── TaxCalculatorInterface.php
+    │   ├── TaxRateApplierInterface.php
+    │   └── TaxZoneResolverInterface.php
     ├── Data/
     │   └── TaxResultData.php        # Result DTO
     ├── Exceptions/
@@ -167,7 +180,14 @@ packages/tax/
     │   ├── TaxRate.php
     │   └── TaxZone.php
     ├── Services/
-    │   └── TaxCalculator.php        # Main calculation engine
+    │   ├── TaxCalculator.php        # Main calculation engine
+    │   ├── RateApplier/
+    │   │   └── StandardRateApplier.php
+    │   └── ZoneResolver/
+    │       ├── AddressZoneResolver.php
+    │       ├── CompositeZoneResolver.php
+    │       ├── DefaultZoneResolver.php
+    │       └── ZoneIdResolver.php
     ├── Settings/
     │   ├── TaxSettings.php          # Runtime settings
     │   └── TaxZoneSettings.php      # Zone resolution settings
