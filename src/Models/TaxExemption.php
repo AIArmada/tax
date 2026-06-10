@@ -13,6 +13,13 @@ use AIArmada\Tax\Actions\Exemption\ApproveExemptionAction;
 use AIArmada\Tax\Actions\Exemption\RejectExemptionAction;
 use AIArmada\Tax\Database\Factories\TaxExemptionFactory;
 use AIArmada\Tax\Enums\ExemptionStatus;
+use AIArmada\Tax\States\TaxExemptionState\ApprovedState;
+use AIArmada\Tax\States\TaxExemptionState\ExpiredState;
+use AIArmada\Tax\States\TaxExemptionState\PendingState;
+use AIArmada\Tax\States\TaxExemptionState\RejectedState;
+use AIArmada\Tax\States\TaxExemptionState\RevokedState;
+use AIArmada\Tax\States\TaxExemptionState\TaxExemptionState;
+use AIArmada\Tax\States\TaxExemptionState\UnderReviewState;
 use AIArmada\Tax\Support\TaxOwnerScope;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -26,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Activitylog\Support\LogOptions;
+use Spatie\ModelStates\HasStates;
 
 /**
  * Represents a tax exemption for a customer or entity.
@@ -39,12 +47,13 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $reason
  * @property string|null $certificate_number
  * @property string|null $document_path
- * @property ExemptionStatus $status
+ * @property TaxExemptionState $status
  * @property string|null $rejection_reason
  * @property CarbonInterface|null $verified_at
  * @property string|null $verified_by
  * @property CarbonInterface|null $starts_at
  * @property CarbonInterface|null $expires_at
+ * @property CarbonInterface|null $revoked_at
  * @property-read TaxZone|null $taxZone
  * @property-read Model|null $exemptable
  */
@@ -59,6 +68,7 @@ class TaxExemption extends Model implements Auditable
         scopeForOwner as baseScopeForOwner;
     }
     use HasOwnerScopeConfig;
+    use HasStates;
     use HasUuids;
 
     protected static string $ownerScopeConfigKey = 'tax.features.owner';
@@ -80,6 +90,7 @@ class TaxExemption extends Model implements Auditable
         'verified_by',
         'starts_at',
         'expires_at',
+        'revoked_at',
     ];
 
     /**
@@ -92,10 +103,11 @@ class TaxExemption extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'status' => ExemptionStatus::class,
-            'verified_at' => 'datetime',
-            'starts_at' => 'datetime',
-            'expires_at' => 'datetime',
+            'status' => TaxExemptionState::class,
+            'verified_at' => 'immutable_datetime',
+            'starts_at' => 'immutable_datetime',
+            'expires_at' => 'immutable_datetime',
+            'revoked_at' => 'immutable_datetime',
         ];
     }
 
@@ -352,6 +364,27 @@ class TaxExemption extends Model implements Auditable
     public function reject(string $reason): self
     {
         return app(RejectExemptionAction::class)->execute($this, $reason);
+    }
+
+    public function markUnderReview(): self
+    {
+        $this->status->transitionTo(UnderReviewState::class);
+
+        return $this;
+    }
+
+    public function revoke(): self
+    {
+        $this->status->transitionTo(RevokedState::class);
+
+        return $this;
+    }
+
+    public function expire(): self
+    {
+        $this->status->transitionTo(ExpiredState::class);
+
+        return $this;
     }
 
     // =========================================================================

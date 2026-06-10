@@ -9,6 +9,7 @@ use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxZoneFactory;
+use AIArmada\Tax\Enums\ZoneType;
 use AIArmada\Tax\Support\TaxOwnerScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
@@ -83,6 +84,7 @@ class TaxZone extends Model implements Auditable
     protected function casts(): array
     {
         return [
+            'type' => ZoneType::class,
             'countries' => 'array',
             'states' => 'array',
             'postcodes' => 'array',
