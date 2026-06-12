@@ -36,6 +36,7 @@ return new class extends Migration
             // Validity period
             $table->timestampTz('starts_at')->nullable();
             $table->timestampTz('expires_at')->nullable();
+            $table->timestampTz('revoked_at')->nullable();
 
             $table->timestampsTz();
 
