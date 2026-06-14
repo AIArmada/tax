@@ -37,16 +37,33 @@ final class TaxServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(TaxCalculatorInterface::class, TaxCalculator::class);
         $this->app->alias(TaxCalculatorInterface::class, 'tax');
+
+        $this->registerSettingsMigrationPath();
     }
 
     public function bootingPackage(): void
     {
-        if (! $this->app->runningInConsole()) {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__ . '/../database/settings' => database_path('settings'),
+            ], 'tax-settings');
+        }
+    }
+
+    private function registerSettingsMigrationPath(): void
+    {
+        $packagePath = __DIR__ . '/../database/settings';
+
+        if (! is_dir($packagePath)) {
             return;
         }
 
-        $this->publishes([
-            __DIR__ . '/../database/settings' => database_path('settings'),
-        ], 'tax-settings');
+        $paths = config('settings.migrations_paths', []);
+
+        if (! in_array($packagePath, $paths, true)) {
+            $paths[] = $packagePath;
+
+            config(['settings.migrations_paths' => $paths]);
+        }
     }
 }
