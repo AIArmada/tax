@@ -19,7 +19,13 @@
     ],
     "require": {
         "aiarmada/commerce-support": "self.version",
-        "php": "^8.4"
+        "akaunting/laravel-money": "^6.0.3",
+        "owen-it/laravel-auditing": "^14.0.3",
+        "php": "^8.4",
+        "spatie/laravel-activitylog": "^5.0.0",
+        "spatie/laravel-data": "^4.23.0",
+        "spatie/laravel-model-states": "^2.14.1",
+        "spatie/laravel-settings": "^3.8.1"
     },
     "autoload": {
         "psr-4": {
