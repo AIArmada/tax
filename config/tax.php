@@ -15,8 +15,6 @@ return [
             'tax_classes' => 'tax_classes',
             'tax_exemptions' => 'tax_exemptions',
         ],
-
-        'json_column_type' => env('TAX_JSON_COLUMN_TYPE', env('COMMERCE_JSON_COLUMN_TYPE', 'jsonb')),
     ],
 
     /*
@@ -25,6 +23,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'defaults' => [
+        'currency' => env('TAX_DEFAULT_CURRENCY', 'MYR'),
         'prices_include_tax' => env('TAX_PRICES_INCLUDE_TAX', false),
         'calculate_tax_on_shipping' => env('TAX_ON_SHIPPING', true),
         'round_at_subtotal' => true,

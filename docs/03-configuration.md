@@ -30,9 +30,8 @@ return [
             'tax_exemptions' => 'tax_exemptions',
         ],
 
-        // Use 'jsonb' for PostgreSQL, 'json' for MySQL 5.7+
-        'json_column_type' => env('TAX_JSON_COLUMN_TYPE', env('COMMERCE_JSON_COLUMN_TYPE', 'jsonb')),
     ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -40,6 +39,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'defaults' => [
+        // Currency used when the calculation context does not provide one
+        'currency' => env('TAX_DEFAULT_CURRENCY', 'MYR'),
+
         // Whether product prices already include tax
         'prices_include_tax' => env('TAX_PRICES_INCLUDE_TAX', false),
 
@@ -90,9 +92,9 @@ return [
 |-----|------|---------|-------------|
 | `database.tables.tax_zones` | string | `'tax_zones'` | Tax zones table name |
 | `database.tables.tax_rates` | string | `'tax_rates'` | Tax rates table name |
+| `defaults.currency` | string | `'MYR'` | Fallback ISO 4217 currency for tax results |
 | `database.tables.tax_classes` | string | `'tax_classes'` | Tax classes table name |
 | `database.tables.tax_exemptions` | string | `'tax_exemptions'` | Tax exemptions table name |
-| `database.json_column_type` | string | `'jsonb'` | JSON column type (`json` or `jsonb`) |
 
 ### Default Behavior Options
 
