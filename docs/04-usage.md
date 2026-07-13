@@ -499,15 +499,23 @@ OwnerContext::withOwner($tenant, function () {
 
 ### Manual Scoping
 
+Owner scoping is applied automatically via the global scope on `HasOwner` models. For explicit queries:
+
 ```php
-use AIArmada\Tax\Support\TaxOwnerScope;
+use AIArmada\CommerceSupport\Facades\OwnerContext;
 
-// Apply to a query
-$query = TaxOwnerScope::applyToOwnedQuery(TaxZone::query());
+// Query only the current owner's records:
+$zones = TaxZone::forOwner($owner)->get();
 
-// Check if enabled
-if (TaxOwnerScope::isEnabled()) {
-    $owner = TaxOwnerScope::resolveOwner();
+// Include global-only records alongside owned ones:
+$zones = TaxZone::forOwner($owner, includeGlobal: true)->get();
+
+// Query global-only records:
+$zones = TaxZone::globalOnly()->get();
+
+// Check if owner scoping is enabled:
+if (config('tax.features.owner.enabled', false)) {
+    $owner = OwnerContext::resolve();
 }
 ```
 

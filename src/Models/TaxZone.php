@@ -6,11 +6,11 @@ namespace AIArmada\Tax\Models;
 
 use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
 use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxZoneFactory;
 use AIArmada\Tax\Enums\ZoneType;
-use AIArmada\Tax\Support\TaxOwnerScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -262,11 +262,11 @@ class TaxZone extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $zone): void {
-            if (! TaxOwnerScope::isEnabled()) {
+            if (! config('tax.features.owner.enabled', false)) {
                 return;
             }
 
-            $owner = TaxOwnerScope::resolveOwner();
+            $owner = OwnerContext::resolve();
 
             if ($owner === null) {
                 if ($zone->owner_type !== null || $zone->owner_id !== null) {
@@ -292,8 +292,8 @@ class TaxZone extends Model implements Auditable
         });
 
         static::deleting(function (TaxZone $zone): void {
-            if (TaxOwnerScope::isEnabled()) {
-                $owner = TaxOwnerScope::resolveOwner();
+            if (config('tax.features.owner.enabled', false)) {
+                $owner = OwnerContext::resolve();
 
                 if ($owner === null) {
                     if ($zone->owner_type !== null || $zone->owner_id !== null) {

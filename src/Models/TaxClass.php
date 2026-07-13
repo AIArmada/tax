@@ -6,10 +6,10 @@ namespace AIArmada\Tax\Models;
 
 use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
 use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxClassFactory;
-use AIArmada\Tax\Support\TaxOwnerScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -81,11 +81,11 @@ class TaxClass extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $class): void {
-            if (! TaxOwnerScope::isEnabled()) {
+            if (! config('tax.features.owner.enabled', false)) {
                 return;
             }
 
-            $owner = TaxOwnerScope::resolveOwner();
+            $owner = OwnerContext::resolve();
 
             if ($owner === null) {
                 if ($class->owner_type !== null || $class->owner_id !== null) {
@@ -111,8 +111,8 @@ class TaxClass extends Model implements Auditable
         });
 
         static::deleting(function (self $class): void {
-            if (TaxOwnerScope::isEnabled()) {
-                $owner = TaxOwnerScope::resolveOwner();
+            if (config('tax.features.owner.enabled', false)) {
+                $owner = OwnerContext::resolve();
 
                 if ($owner === null) {
                     if ($class->owner_type !== null || $class->owner_id !== null) {
@@ -175,7 +175,7 @@ class TaxClass extends Model implements Auditable
     public static function getDefault(): ?self
     {
         /** @var self|null $class */
-        $class = TaxOwnerScope::applyToOwnedQuery(static::query())
+        $class = static::query()
             ->default()
             ->first();
 
@@ -188,7 +188,7 @@ class TaxClass extends Model implements Auditable
     public static function findBySlug(string $slug): ?self
     {
         /** @var self|null $class */
-        $class = TaxOwnerScope::applyToOwnedQuery(static::query())
+        $class = static::query()
             ->where('slug', $slug)
             ->first();
 

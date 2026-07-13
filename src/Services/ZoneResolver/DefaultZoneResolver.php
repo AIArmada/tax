@@ -7,7 +7,6 @@ namespace AIArmada\Tax\Services\ZoneResolver;
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Exceptions\TaxZoneNotFoundException;
 use AIArmada\Tax\Models\TaxZone;
-use AIArmada\Tax\Support\TaxOwnerScope;
 
 final class DefaultZoneResolver implements TaxZoneResolverInterface
 {
@@ -41,7 +40,7 @@ final class DefaultZoneResolver implements TaxZoneResolverInterface
 
     public function resolve(?string $zoneId, array $context): ?TaxZone
     {
-        $defaultZone = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+        $defaultZone = TaxZone::query()
             ->default()
             ->active()
             ->first();
@@ -53,7 +52,7 @@ final class DefaultZoneResolver implements TaxZoneResolverInterface
         $fallbackZoneId = $this->getFallbackZoneId();
 
         if ($fallbackZoneId !== null) {
-            $fallbackZone = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+            $fallbackZone = TaxZone::query()
                 ->whereKey($fallbackZoneId)
                 ->first();
 

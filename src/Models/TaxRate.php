@@ -6,10 +6,10 @@ namespace AIArmada\Tax\Models;
 
 use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
 use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Database\Factories\TaxRateFactory;
-use AIArmada\Tax\Support\TaxOwnerScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -92,11 +92,11 @@ class TaxRate extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $rate): void {
-            if (! TaxOwnerScope::isEnabled()) {
+            if (! config('tax.features.owner.enabled', false)) {
                 return;
             }
 
-            $owner = TaxOwnerScope::resolveOwner();
+            $owner = OwnerContext::resolve();
 
             if ($owner === null) {
                 if ($rate->owner_type !== null || $rate->owner_id !== null) {
@@ -119,7 +119,7 @@ class TaxRate extends Model implements Auditable
             }
 
             if ($rate->isDirty('zone_id') || ! $rate->exists) {
-                $zoneExists = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+                $zoneExists = TaxZone::query()
                     ->whereKey($rate->zone_id)
                     ->exists();
 

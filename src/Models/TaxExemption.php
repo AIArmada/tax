@@ -6,6 +6,7 @@ namespace AIArmada\Tax\Models;
 
 use AIArmada\CommerceSupport\Concerns\HasCommerceAudit;
 use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerWriteGuard;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
@@ -17,7 +18,6 @@ use AIArmada\Tax\States\TaxExemptionState\ExpiredState;
 use AIArmada\Tax\States\TaxExemptionState\RevokedState;
 use AIArmada\Tax\States\TaxExemptionState\TaxExemptionState;
 use AIArmada\Tax\States\TaxExemptionState\UnderReviewState;
-use AIArmada\Tax\Support\TaxOwnerScope;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -109,11 +109,11 @@ class TaxExemption extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $exemption): void {
-            if (! TaxOwnerScope::isEnabled()) {
+            if (! config('tax.features.owner.enabled', false)) {
                 return;
             }
 
-            $owner = TaxOwnerScope::resolveOwner();
+            $owner = OwnerContext::resolve();
 
             if ($owner === null) {
                 if ($exemption->owner_type !== null || $exemption->owner_id !== null) {
@@ -160,7 +160,7 @@ class TaxExemption extends Model implements Auditable
             }
 
             if ($exemption->tax_zone_id !== null && ($exemption->isDirty('tax_zone_id') || ! $exemption->exists)) {
-                $zoneExists = TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+                $zoneExists = TaxZone::query()
                     ->whereKey($exemption->tax_zone_id)
                     ->exists();
 

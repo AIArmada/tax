@@ -6,7 +6,6 @@ namespace AIArmada\Tax\Services\ZoneResolver;
 
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Models\TaxZone;
-use AIArmada\Tax\Support\TaxOwnerScope;
 
 final class AddressZoneResolver implements TaxZoneResolverInterface
 {
@@ -59,7 +58,7 @@ final class AddressZoneResolver implements TaxZoneResolverInterface
 
     private function findZoneByAddress(string $country, ?string $state, ?string $postcode): ?TaxZone
     {
-        return TaxOwnerScope::applyToOwnedQuery(TaxZone::forAddress($country, $state, $postcode))
+        return TaxZone::forAddress($country, $state, $postcode)
             ->get()
             ->first(fn (TaxZone $zone) => $zone->matchesAddress($country, $state, $postcode));
     }

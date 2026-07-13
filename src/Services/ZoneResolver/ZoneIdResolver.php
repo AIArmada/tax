@@ -6,7 +6,6 @@ namespace AIArmada\Tax\Services\ZoneResolver;
 
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Models\TaxZone;
-use AIArmada\Tax\Support\TaxOwnerScope;
 
 final class ZoneIdResolver implements TaxZoneResolverInterface
 {
@@ -16,7 +15,7 @@ final class ZoneIdResolver implements TaxZoneResolverInterface
             return null;
         }
 
-        return TaxOwnerScope::applyToOwnedQuery(TaxZone::query())
+        return TaxZone::query()
             ->whereKey($zoneId)
             ->first();
     }
