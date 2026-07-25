@@ -37,7 +37,6 @@ class TaxExemptionFactory extends Factory
             'status' => 'approved',
             'rejection_reason' => null,
             'verified_at' => now(),
-            'verified_by' => null,
             'starts_at' => null,
             'expires_at' => null,
         ];
@@ -63,7 +62,6 @@ class TaxExemptionFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'pending',
             'verified_at' => null,
-            'verified_by' => null,
         ]);
     }
 

@@ -47,7 +47,6 @@ use Spatie\ModelStates\HasStates;
  * @property TaxExemptionState $status
  * @property string|null $rejection_reason
  * @property CarbonInterface|null $verified_at
- * @property string|null $verified_by
  * @property CarbonInterface|null $starts_at
  * @property CarbonInterface|null $expires_at
  * @property CarbonInterface|null $revoked_at
@@ -84,7 +83,6 @@ class TaxExemption extends Model implements Auditable
         'status',
         'rejection_reason',
         'verified_at',
-        'verified_by',
         'starts_at',
         'expires_at',
         'revoked_at',
