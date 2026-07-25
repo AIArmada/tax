@@ -31,7 +31,6 @@ return new class extends Migration
 
             // Verification
             $table->timestampTz('verified_at')->nullable();
-            $table->uuid('verified_by')->nullable();
 
             // Validity period
             $table->timestampTz('starts_at')->nullable();
