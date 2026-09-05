@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create((string) config('tax.database.tables.tax_classes', 'tax_classes'), function (Blueprint $table): void {
+        commerce_schema_create_if_missing((string) config('tax.database.tables.tax_classes', 'tax_classes'), function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->nullableMorphs('owner');
             $table->string('name');

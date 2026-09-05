@@ -13,8 +13,10 @@ use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
 use AIArmada\Tax\Actions\Exemption\ApproveExemptionAction;
 use AIArmada\Tax\Actions\Exemption\RejectExemptionAction;
 use AIArmada\Tax\Database\Factories\TaxExemptionFactory;
-use AIArmada\Tax\Enums\ExemptionStatus;
+use AIArmada\Tax\States\TaxExemptionState\ApprovedState;
 use AIArmada\Tax\States\TaxExemptionState\ExpiredState;
+use AIArmada\Tax\States\TaxExemptionState\PendingState;
+use AIArmada\Tax\States\TaxExemptionState\RejectedState;
 use AIArmada\Tax\States\TaxExemptionState\RevokedState;
 use AIArmada\Tax\States\TaxExemptionState\TaxExemptionState;
 use AIArmada\Tax\States\TaxExemptionState\UnderReviewState;
@@ -218,7 +220,7 @@ class TaxExemption extends Model implements Auditable
     {
         $now = CarbonImmutable::now();
 
-        return $query->where('status', ExemptionStatus::Approved)
+        return $query->where('status', ApprovedState::$name)
             ->where(function ($q) use ($now): void {
                 $q->whereNull('expires_at')
                     ->orWhere('expires_at', '>=', $now);
@@ -235,7 +237,7 @@ class TaxExemption extends Model implements Auditable
      */
     public function scopePending(Builder $query): Builder
     {
-        return $query->where('status', ExemptionStatus::Pending);
+        return $query->where('status', PendingState::$name);
     }
 
     /**
@@ -244,7 +246,7 @@ class TaxExemption extends Model implements Auditable
      */
     public function scopeApproved(Builder $query): Builder
     {
-        return $query->where('status', ExemptionStatus::Approved);
+        return $query->where('status', ApprovedState::$name);
     }
 
     /**
@@ -253,7 +255,7 @@ class TaxExemption extends Model implements Auditable
      */
     public function scopeRejected(Builder $query): Builder
     {
-        return $query->where('status', ExemptionStatus::Rejected);
+        return $query->where('status', RejectedState::$name);
     }
 
     /**
@@ -299,7 +301,7 @@ class TaxExemption extends Model implements Auditable
 
     public function isActive(): bool
     {
-        if ($this->status !== ExemptionStatus::Approved) {
+        if (! $this->status instanceof ApprovedState) {
             return false;
         }
 
@@ -323,17 +325,17 @@ class TaxExemption extends Model implements Auditable
 
     public function isPending(): bool
     {
-        return $this->status === ExemptionStatus::Pending;
+        return $this->status instanceof PendingState;
     }
 
     public function isApproved(): bool
     {
-        return $this->status === ExemptionStatus::Approved;
+        return $this->status instanceof ApprovedState;
     }
 
     public function isRejected(): bool
     {
-        return $this->status === ExemptionStatus::Rejected;
+        return $this->status instanceof RejectedState;
     }
 
     /**

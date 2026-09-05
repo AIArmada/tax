@@ -7,7 +7,6 @@ namespace AIArmada\Tax\Database\Factories;
 use AIArmada\Tax\Models\TaxExemption;
 use AIArmada\Tax\Models\TaxZone;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Carbon;
 
 /**
  * @extends Factory<TaxExemption>
@@ -86,7 +85,7 @@ class TaxExemptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'approved',
-            'expires_at' => Carbon::now()->subDay(),
+            'expires_at' => CarbonImmutable::now()->subDay(),
         ]);
     }
 
@@ -94,7 +93,7 @@ class TaxExemptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'approved',
-            'starts_at' => Carbon::now()->addDay(),
+            'starts_at' => CarbonImmutable::now()->addDay(),
         ]);
     }
 
@@ -103,7 +102,7 @@ class TaxExemptionFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'approved',
             'starts_at' => now(),
-            'expires_at' => Carbon::now()->addDays($days),
+            'expires_at' => CarbonImmutable::now()->addDays($days),
         ]);
     }
 

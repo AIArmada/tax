@@ -23,6 +23,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'database' => [
+        'json_column_type' => env('TAX_JSON_COLUMN_TYPE', 'jsonb'),
         'tables' => [
             'tax_zones' => 'tax_zones',
             'tax_rates' => 'tax_rates',
@@ -64,7 +65,7 @@ return [
         // Multi-tenancy settings
         'owner' => [
             'enabled' => env('TAX_OWNER_ENABLED', false),
-            'include_global' => env('TAX_OWNER_INCLUDE_GLOBAL', false),
+            'include_global' => false,
             'auto_assign_on_create' => env('TAX_OWNER_AUTO_ASSIGN', true),
         ],
 
@@ -90,6 +91,7 @@ return [
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| `database.json_column_type` | string | `'jsonb'` | JSON column type used by tax migrations |
 | `database.tables.tax_zones` | string | `'tax_zones'` | Tax zones table name |
 | `database.tables.tax_rates` | string | `'tax_rates'` | Tax rates table name |
 | `defaults.currency` | string | `'MYR'` | Fallback ISO 4217 currency for tax results |

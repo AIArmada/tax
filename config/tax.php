@@ -9,6 +9,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'database' => [
+        'json_column_type' => env('TAX_JSON_COLUMN_TYPE', 'jsonb'),
         'tables' => [
             'tax_zones' => 'tax_zones',
             'tax_rates' => 'tax_rates',

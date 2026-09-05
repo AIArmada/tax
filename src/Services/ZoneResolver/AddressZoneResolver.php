@@ -50,7 +50,7 @@ final class AddressZoneResolver implements TaxZoneResolverInterface
         }
 
         return $this->findZoneByAddress(
-            $address['country_code'] ?? 'MY',
+            $address['country'] ?? 'MY',
             $address['state'] ?? null,
             $address['postcode'] ?? null,
         );

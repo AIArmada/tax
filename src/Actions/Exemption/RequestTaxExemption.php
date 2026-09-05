@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Actions\Exemption;
 
-use AIArmada\Tax\Enums\ExemptionStatus;
 use AIArmada\Tax\Models\TaxExemption;
+use AIArmada\Tax\States\TaxExemptionState\PendingState;
 
 final class RequestTaxExemption
 {
@@ -14,7 +14,7 @@ final class RequestTaxExemption
      */
     public function execute(array $attributes): TaxExemption
     {
-        $attributes['status'] ??= ExemptionStatus::Pending;
+        $attributes['status'] ??= PendingState::class;
 
         $exemption = new TaxExemption($attributes);
         $exemption->save();

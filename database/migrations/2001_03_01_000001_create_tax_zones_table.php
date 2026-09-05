@@ -12,7 +12,7 @@ return new class extends Migration
     {
         $jsonColumnType = commerce_json_column_type('tax', 'jsonb');
 
-        Schema::create((string) config('tax.database.tables.tax_zones', 'tax_zones'), function (Blueprint $table) use ($jsonColumnType): void {
+        commerce_schema_create_if_missing((string) config('tax.database.tables.tax_zones', 'tax_zones'), function (Blueprint $table) use ($jsonColumnType): void {
             $table->uuid('id')->primary();
             $table->nullableMorphs('owner');
             $table->string('name');

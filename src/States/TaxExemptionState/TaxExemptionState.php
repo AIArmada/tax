@@ -69,6 +69,7 @@ abstract class TaxExemptionState extends State
         return parent::config()
             ->default(PendingState::class)
             ->allowTransition(PendingState::class, UnderReviewState::class)
+            ->allowTransition(PendingState::class, ApprovedState::class)
             ->allowTransition(PendingState::class, RejectedState::class)
             ->allowTransition(PendingState::class, RevokedState::class)
             ->allowTransition(UnderReviewState::class, ApprovedState::class)
