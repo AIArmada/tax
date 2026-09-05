@@ -6,6 +6,7 @@ namespace AIArmada\Tax\Database\Factories;
 
 use AIArmada\Tax\Models\TaxExemption;
 use AIArmada\Tax\Models\TaxZone;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
