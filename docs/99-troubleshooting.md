@@ -85,9 +85,8 @@ This guide covers common issues and debugging techniques for the Tax package.
 
 4. **Check rounding mode**
    ```php
-   config('tax.defaults.round_at_subtotal');
-   // true = round after summing all taxes
-   // false = round each tax individually
+   config('tax.defaults.round_per_rate');
+   // true = round each configured rate before adding it to the total
    ```
 
 ### Zone Not Found

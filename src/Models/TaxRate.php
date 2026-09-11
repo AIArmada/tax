@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Activitylog\Support\LogOptions;
@@ -43,9 +42,7 @@ class TaxRate extends Model implements Auditable
     /** @use HasFactory<TaxRateFactory> */
     use HasFactory;
 
-    use HasOwner {
-        scopeForOwner as baseScopeForOwner;
-    }
+    use HasOwner;
     use HasOwnerScopeConfig;
     use HasUuids;
 
@@ -120,6 +117,10 @@ class TaxRate extends Model implements Auditable
 
             if ($rate->isDirty('zone_id') || ! $rate->exists) {
                 $zoneExists = TaxZone::query()
+                    ->forOwner(
+                        $owner,
+                        includeGlobal: (bool) config('tax.features.owner.include_global', false),
+                    )
                     ->whereKey($rate->zone_id)
                     ->exists();
 
@@ -140,20 +141,6 @@ class TaxRate extends Model implements Auditable
     protected static function newFactory(): TaxRateFactory
     {
         return TaxRateFactory::new();
-    }
-
-    /**
-     * Create a zero-rate instance.
-     */
-    public static function zeroRate(string $taxClass, TaxZone $zone): self
-    {
-        return new self([
-            'zone_id' => $zone->id,
-            'tax_class' => $taxClass,
-            'name' => 'Zero Rate',
-            'rate' => 0,
-            'is_active' => true,
-        ]);
     }
 
     public function getTable(): string
@@ -202,26 +189,6 @@ class TaxRate extends Model implements Auditable
     public function scopeForZone(Builder $query, string $zoneId): Builder
     {
         return $query->where('zone_id', $zoneId);
-    }
-
-    /**
-     * Scope query to the specified owner, respecting the `include_global` config.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
-    {
-        if (! config('tax.features.owner.enabled', false)) {
-            return $query;
-        }
-
-        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
-
-        /** @var Builder<static> $scoped */
-        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
-
-        return $scoped;
     }
 
     // =========================================================================

@@ -17,6 +17,8 @@ use AIArmada\Tax\Models\TaxRate;
 use AIArmada\Tax\Models\TaxZone;
 use AIArmada\Tax\Settings\TaxSettings;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use Throwable;
 
 class TaxCalculator implements TaxCalculatorInterface
@@ -33,42 +35,47 @@ class TaxCalculator implements TaxCalculatorInterface
         array $context = []
     ): TaxResultData {
         $amountInCents = MoneyNormalizer::toCents($amountInCents);
+        $context['zone_id'] = $zoneId;
+        $context['owner'] = TaxOwnerScope::resolve($context);
 
         if (! $this->isTaxEnabled()) {
-            return $this->createZeroResult($zoneId);
+            return $this->createZeroResult($zoneId, $context);
         }
 
-        $context['zone_id'] = $zoneId;
-
         $exemption = $this->checkExemption($context);
-        if ($exemption) {
+        if ($exemption !== null) {
             TaxExemptionApplied::dispatch($exemption, $amountInCents, $zoneId, $context);
 
-            return $this->createExemptResult($exemption, $zoneId);
+            return $this->createExemptResult($exemption, $zoneId, $context);
         }
 
         $zone = $this->zoneResolver->resolve($zoneId, $context);
 
         if ($zone === null) {
-            return $this->createZeroResult($zoneId);
+            return $this->createZeroResult($zoneId, $context);
         }
 
         TaxZoneResolved::dispatch($zone, $zoneId, $context);
 
-        $rates = $this->getRates($taxClass, $zone, $context['is_shipping'] ?? false);
+        $rates = $this->getRates($taxClass, $zone, (bool) ($context['is_shipping'] ?? false), $context);
 
         if ($rates->isEmpty()) {
-            return $this->createZeroResult($zone->id);
+            return $this->createZeroResult($zone->id, $context);
         }
 
         $pricesIncludeTax = $this->getPricesIncludeTax();
         $result = $this->rateApplier->apply($amountInCents, $rates, $pricesIncludeTax);
+        $primaryRate = $result['primary_rate'];
+
+        if ($primaryRate === null) {
+            return $this->createZeroResult($zone->id, $context);
+        }
 
         $taxResult = new TaxResultData(
             taxAmount: $result['total'],
-            rateId: $result['primary_rate']->id,
-            rateName: $result['primary_rate']->name,
-            ratePercentage: $result['primary_rate']->rate,
+            rateId: $primaryRate->id,
+            rateName: $primaryRate->name,
+            ratePercentage: $primaryRate->rate,
             zoneId: $zone->id,
             zoneName: $zone->name,
             includedInPrice: $pricesIncludeTax,
@@ -84,7 +91,7 @@ class TaxCalculator implements TaxCalculatorInterface
     public function calculateShippingTax(int $shippingAmountInCents, ?string $zoneId = null, array $context = []): TaxResultData
     {
         if (! $this->isShippingTaxable()) {
-            return $this->createZeroResult($zoneId);
+            return $this->createZeroResult($zoneId, $context);
         }
 
         $context['is_shipping'] = true;
@@ -95,7 +102,7 @@ class TaxCalculator implements TaxCalculatorInterface
     /**
      * @return Collection<int, TaxRate>
      */
-    protected function getRates(string $taxClass, TaxZone $zone, bool $isShipping = false): Collection
+    protected function getRates(string $taxClass, TaxZone $zone, bool $isShipping, array $context): Collection
     {
         $query = TaxRate::query()
             ->where('zone_id', $zone->id)
@@ -108,98 +115,112 @@ class TaxCalculator implements TaxCalculatorInterface
             $query->where('is_shipping', true);
         }
 
-        return $query->get();
+        /** @var Collection<int, TaxRate> $rates */
+        $rates = TaxOwnerScope::apply($query, $context)->get();
+
+        return $rates;
     }
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
     protected function checkExemption(array $context): ?TaxExemption
     {
         if (! config('tax.features.exemptions.enabled', true)) {
             return null;
         }
 
-        $customerId = $context['customer_id'] ?? null;
-        $customerType = $context['customer_type'] ?? null;
+        $exemptableId = $context['exemptable_id'] ?? $context['customer_id'] ?? null;
+        $exemptableType = $context['exemptable_type'] ?? $context['customer_type'] ?? null;
+        $exemptable = $context['exemptable'] ?? $context['customer'] ?? null;
 
-        if (! $customerId) {
+        if ($exemptable instanceof Model) {
+            $exemptableId ??= $exemptable->getKey();
+            $exemptableType ??= $exemptable->getMorphClass();
+        }
+
+        if ($exemptableId === null || $exemptableId === '') {
             return null;
         }
 
-        $candidateTypes = [];
-
-        if (is_string($customerType) && $customerType !== '') {
-            $candidateTypes[] = $customerType;
-        } else {
-            if (class_exists('AIArmada\\Customers\\Models\\Customer')) {
-                $candidateTypes[] = 'AIArmada\\Customers\\Models\\Customer';
-            }
-
-            $candidateTypes[] = 'App\\Models\\Customer';
-            $candidateTypes[] = 'App\\Models\\User';
+        if (! is_string($exemptableType) || $exemptableType === '') {
+            throw new InvalidArgumentException(
+                'Tax exemption lookups require an explicit exemptable_type or customer_type.',
+            );
         }
-
-        $candidateTypes = array_values(array_unique($candidateTypes));
 
         $zoneId = $context['zone_id'] ?? null;
 
-        $query = TaxExemption::query()
-            ->where('exemptable_id', $customerId)
-            ->whereIn('exemptable_type', $candidateTypes)
+        return TaxOwnerScope::apply(TaxExemption::query(), $context)
+            ->where('exemptable_id', $exemptableId)
+            ->where('exemptable_type', $exemptableType)
             ->active()
-            ->forZone($zoneId);
-
-        return $query->first();
+            ->forZone(is_string($zoneId) ? $zoneId : null)
+            ->first();
     }
 
-    protected function createExemptResult(TaxExemption $exemption, ?string $zoneId): TaxResultData
+    /**
+     * Unknown zones intentionally produce a non-persisted no-tax result. The
+     * nullable identifiers distinguish that result from a configured zone or rate.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function createExemptResult(TaxExemption $exemption, ?string $zoneId, array $context): TaxResultData
     {
-        $zone = null;
-        if ($zoneId !== null) {
-            $zone = TaxZone::query()
-                ->whereKey($zoneId)
-                ->first();
-        }
-
-        if ($zone === null) {
-            $zone = TaxZone::zeroRate();
-        }
+        $zone = $this->findZone($zoneId, $context);
 
         return new TaxResultData(
             taxAmount: 0,
             rateId: 'exempt',
             rateName: 'Tax Exempt',
             ratePercentage: 0,
-            zoneId: $zone->id,
-            zoneName: $zone->name,
+            zoneId: $zone?->id,
+            zoneName: $zone?->name ?? 'Unknown Zone',
             includedInPrice: false,
             exemptionReason: $exemption->reason,
-            currency: $this->getCurrency(),
+            currency: $this->getCurrency($context),
         );
     }
 
-    protected function createZeroResult(?string $zoneId): TaxResultData
+    /**
+     * Unknown zones intentionally produce a documented no-tax default rather
+     * than a fabricated TaxZone or TaxRate model.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function createZeroResult(?string $zoneId, array $context = []): TaxResultData
     {
-        $zone = null;
-
-        if ($zoneId !== null) {
-            $zone = TaxZone::query()
-                ->whereKey($zoneId)
-                ->first();
-        }
-
-        $zone ??= TaxZone::zeroRate();
+        $zone = $this->findZone($zoneId, $context);
 
         return new TaxResultData(
             taxAmount: 0,
-            rateId: 'zero',
+            rateId: null,
             rateName: 'No Tax',
             ratePercentage: 0,
-            zoneId: $zone->id,
-            zoneName: $zone->name,
+            zoneId: $zone?->id,
+            zoneName: $zone?->name ?? 'Unknown Zone',
             includedInPrice: false,
-            currency: $this->getCurrency(),
+            currency: $this->getCurrency($context),
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function findZone(?string $zoneId, array $context): ?TaxZone
+    {
+        if ($zoneId === null) {
+            return null;
+        }
+
+        return TaxOwnerScope::apply(TaxZone::query(), $context)
+            ->whereKey($zoneId)
+            ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
     private function getCurrency(array $context = []): string
     {
         return $context['currency'] ?? (string) config('tax.defaults.currency', 'MYR');

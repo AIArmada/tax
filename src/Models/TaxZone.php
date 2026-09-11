@@ -16,9 +16,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -46,9 +45,7 @@ class TaxZone extends Model implements Auditable
     /** @use HasFactory<TaxZoneFactory> */
     use HasFactory;
 
-    use HasOwner {
-        scopeForOwner as baseScopeForOwner;
-    }
+    use HasOwner;
     use HasOwnerScopeConfig;
     use HasUuids;
 
@@ -104,20 +101,6 @@ class TaxZone extends Model implements Auditable
     protected static function newFactory(): TaxZoneFactory
     {
         return TaxZoneFactory::new();
-    }
-
-    /**
-     * Get a zero-rate zone (for tax-free calculations).
-     */
-    public static function zeroRate(): self
-    {
-        $zone = new self;
-        $zone->id = (string) Str::uuid();
-        $zone->name = 'Zero Rate Zone';
-        $zone->code = 'ZERO';
-        $zone->is_active = true;
-
-        return $zone;
     }
 
     public function getTable(): string
@@ -184,28 +167,6 @@ class TaxZone extends Model implements Auditable
             ->orderBy('priority', 'desc');
     }
 
-    /**
-     * Scope query to the specified owner.
-     *
-     * @param  Builder<static>  $query
-     * @param  EloquentModel|null  $owner  The owner to scope to
-     * @param  bool  $includeGlobal  Whether to include global (ownerless) records
-     * @return Builder<static>
-     */
-    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
-    {
-        if (! config('tax.features.owner.enabled', false)) {
-            return $query;
-        }
-
-        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
-
-        /** @var Builder<static> $scoped */
-        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
-
-        return $scoped;
-    }
-
     // =========================================================================
     // MATCHING
     // =========================================================================
@@ -262,33 +223,31 @@ class TaxZone extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $zone): void {
-            if (! config('tax.features.owner.enabled', false)) {
-                return;
-            }
+            if (config('tax.features.owner.enabled', false)) {
+                $owner = OwnerContext::resolve();
 
-            $owner = OwnerContext::resolve();
+                if ($owner === null) {
+                    if ($zone->owner_type !== null || $zone->owner_id !== null) {
+                        throw new AuthorizationException('Cannot write owned tax zones without an owner context.');
+                    }
+                } else {
+                    if ($zone->owner_type === null && $zone->owner_id === null) {
+                        if ($zone->exists) {
+                            throw new AuthorizationException('Cannot mutate global tax zones without explicit global context.');
+                        }
 
-            if ($owner === null) {
-                if ($zone->owner_type !== null || $zone->owner_id !== null) {
-                    throw new AuthorizationException('Cannot write owned tax zones without an owner context.');
+                        if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
+                            $zone->assignOwner($owner);
+                        }
+                    }
+
+                    if (! $zone->belongsToOwner($owner)) {
+                        throw new AuthorizationException('Cannot write tax zones outside the current owner scope.');
+                    }
                 }
-
-                return;
             }
 
-            if ($zone->owner_type === null && $zone->owner_id === null) {
-                if ($zone->exists) {
-                    throw new AuthorizationException('Cannot mutate global tax zones without explicit global context.');
-                }
-
-                if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
-                    $zone->assignOwner($owner);
-                }
-            }
-
-            if (! $zone->belongsToOwner($owner)) {
-                throw new AuthorizationException('Cannot write tax zones outside the current owner scope.');
-            }
+            self::assertCodeIsUnique($zone);
         });
 
         static::deleting(function (TaxZone $zone): void {
@@ -337,6 +296,32 @@ class TaxZone extends Model implements Auditable
 
             $zone->rates()->delete();
         });
+    }
+
+    private static function assertCodeIsUnique(self $zone): void
+    {
+        $code = (string) $zone->getAttribute('code');
+
+        if ($code === '') {
+            return;
+        }
+
+        $query = static::query()
+            ->withoutOwnerScope()
+            ->where('code', $code)
+            ->when($zone->exists, fn (Builder $builder): Builder => $builder->whereKeyNot($zone->getKey()));
+
+        if ($zone->owner_type === null && $zone->owner_id === null) {
+            $query->whereNull('owner_type')->whereNull('owner_id');
+        } else {
+            $query->where('owner_type', $zone->owner_type)->where('owner_id', $zone->owner_id);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'code' => 'The tax zone code has already been taken for this owner.',
+            ]);
+        }
     }
 
     /**

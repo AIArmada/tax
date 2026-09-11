@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace AIArmada\Tax\Services\RateApplier;
 
 use AIArmada\Tax\Contracts\TaxRateApplierInterface;
-use AIArmada\Tax\Models\TaxRate;
-use AIArmada\Tax\Models\TaxZone;
 use Illuminate\Database\Eloquent\Collection;
 
 final class StandardRateApplier implements TaxRateApplierInterface
 {
-    private bool $roundAtSubtotal;
+    private bool $roundPerRate;
 
-    public function __construct(?bool $roundAtSubtotal = null)
+    public function __construct(?bool $roundPerRate = null)
     {
-        $this->roundAtSubtotal = $roundAtSubtotal ?? (bool) config('tax.defaults.round_at_subtotal', true);
+        $this->roundPerRate = $roundPerRate ?? (bool) config('tax.defaults.round_per_rate', true);
     }
 
     public function apply(int $amountInCents, Collection $rates, bool $pricesIncludeTax): array
@@ -31,7 +29,7 @@ final class StandardRateApplier implements TaxRateApplierInterface
                 ? $rate->extractTax($amountInCents)
                 : $rate->calculateTax($amountInCents);
 
-            if ($this->roundAtSubtotal) {
+            if ($this->roundPerRate) {
                 $taxAmount = (int) round($taxAmount);
             }
 
@@ -44,11 +42,16 @@ final class StandardRateApplier implements TaxRateApplierInterface
             ];
         }
 
+        /**
+         * Compound rates build on the original taxable amount plus the tax
+         * already accumulated from non-compound rates. Tax-inclusive prices
+         * retain the original amount as their extraction base.
+         */
         foreach ($compoundRates as $rate) {
             $compoundBase = $pricesIncludeTax ? $amountInCents : ($amountInCents + $totalTax);
             $taxAmount = $rate->calculateTax($compoundBase);
 
-            if ($this->roundAtSubtotal) {
+            if ($this->roundPerRate) {
                 $taxAmount = (int) round($taxAmount);
             }
 
@@ -61,11 +64,9 @@ final class StandardRateApplier implements TaxRateApplierInterface
             ];
         }
 
-        $primaryRate = $rates->first() ?? TaxRate::zeroRate('standard', new TaxZone);
-
         return [
             'total' => $totalTax,
-            'primary_rate' => $primaryRate,
+            'primary_rate' => $rates->first(),
             'breakdown' => $breakdown,
         ];
     }

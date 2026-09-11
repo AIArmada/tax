@@ -293,7 +293,10 @@ foreach ($result->breakdown as $tax) {
 
 ### Automatic Exemption Checking
 
-Pass customer context to automatically check exemptions:
+Pass customer context to automatically check exemptions. When passing an ID,
+also pass its explicit morph type; alternatively pass the exemptable model and
+the calculator will derive its morph class. An ID without a type is rejected
+instead of guessing a customer model:
 
 ```php
 $result = Tax::calculateTax(10000, 'standard', $zoneId, [
@@ -418,8 +421,7 @@ $zones = TaxZone::forAddress('MY', 'Selangor', '43000')
 // Get default zone
 $default = TaxZone::where('is_default', true)->first();
 
-// Create a zero-rate virtual zone
-$virtual = TaxZone::zeroRate();
+// Unknown-zone results do not create a virtual TaxZone model.
 
 // Check address match
 $zone->matchesAddress('MY', 'Selangor', '43000'); // bool

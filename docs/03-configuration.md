@@ -24,6 +24,7 @@ return [
     */
     'database' => [
         'json_column_type' => env('TAX_JSON_COLUMN_TYPE', 'jsonb'),
+        'table_prefix' => env('TAX_TABLE_PREFIX', env('COMMERCE_TABLE_PREFIX', '')),
         'tables' => [
             'tax_zones' => 'tax_zones',
             'tax_rates' => 'tax_rates',
@@ -49,8 +50,8 @@ return [
         // Apply tax to shipping costs
         'calculate_tax_on_shipping' => env('TAX_ON_SHIPPING', true),
 
-        // Round tax at subtotal level vs per-line-item
-        'round_at_subtotal' => true,
+        // Round each configured rate before adding it to the total
+        'round_per_rate' => true,
     ],
 
     /*
@@ -92,6 +93,7 @@ return [
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `database.json_column_type` | string | `'jsonb'` | JSON column type used by tax migrations |
+| `database.table_prefix` | string | `''` | Prefix applied to tax table names |
 | `database.tables.tax_zones` | string | `'tax_zones'` | Tax zones table name |
 | `database.tables.tax_rates` | string | `'tax_rates'` | Tax rates table name |
 | `defaults.currency` | string | `'MYR'` | Fallback ISO 4217 currency for tax results |
@@ -104,7 +106,7 @@ return [
 |-----|------|---------|-------------|
 | `defaults.prices_include_tax` | bool | `false` | If `true`, prices are tax-inclusive and tax is extracted |
 | `defaults.calculate_tax_on_shipping` | bool | `true` | Whether to apply tax to shipping costs |
-| `defaults.round_at_subtotal` | bool | `true` | Round at subtotal level (vs per line item) |
+| `defaults.round_per_rate` | bool | `true` | Round each rate result before adding it to the total |
 
 ### Feature Options
 

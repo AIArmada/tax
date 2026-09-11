@@ -15,11 +15,11 @@ class TaxResultData extends Data
      */
     public function __construct(
         public int $taxAmount,
-        public string $rateId,
+        public ?string $rateId,
         public string $rateName,
         /** Rate in basis points (e.g. 600 = 6.00%) */
         public int $ratePercentage,
-        public string $zoneId,
+        public ?string $zoneId,
         public string $zoneName,
         public bool $includedInPrice = false,
         public ?string $exemptionReason = null,

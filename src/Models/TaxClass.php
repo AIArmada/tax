@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Model as EloquentModel;
+use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -39,9 +39,7 @@ class TaxClass extends Model implements Auditable
     /** @use HasFactory<TaxClassFactory> */
     use HasFactory;
 
-    use HasOwner {
-        scopeForOwner as baseScopeForOwner;
-    }
+    use HasOwner;
     use HasOwnerScopeConfig;
     use HasUuids;
 
@@ -81,33 +79,31 @@ class TaxClass extends Model implements Auditable
     protected static function booted(): void
     {
         static::saving(function (self $class): void {
-            if (! config('tax.features.owner.enabled', false)) {
-                return;
-            }
+            if (config('tax.features.owner.enabled', false)) {
+                $owner = OwnerContext::resolve();
 
-            $owner = OwnerContext::resolve();
+                if ($owner === null) {
+                    if ($class->owner_type !== null || $class->owner_id !== null) {
+                        throw new AuthorizationException('Cannot write owned tax classes without an owner context.');
+                    }
+                } else {
+                    if ($class->owner_type === null && $class->owner_id === null) {
+                        if ($class->exists) {
+                            throw new AuthorizationException('Cannot mutate global tax classes without explicit global context.');
+                        }
 
-            if ($owner === null) {
-                if ($class->owner_type !== null || $class->owner_id !== null) {
-                    throw new AuthorizationException('Cannot write owned tax classes without an owner context.');
+                        if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
+                            $class->assignOwner($owner);
+                        }
+                    }
+
+                    if (! $class->belongsToOwner($owner)) {
+                        throw new AuthorizationException('Cannot write tax classes outside the current owner scope.');
+                    }
                 }
-
-                return;
             }
 
-            if ($class->owner_type === null && $class->owner_id === null) {
-                if ($class->exists) {
-                    throw new AuthorizationException('Cannot mutate global tax classes without explicit global context.');
-                }
-
-                if ((bool) config('tax.features.owner.auto_assign_on_create', true)) {
-                    $class->assignOwner($owner);
-                }
-            }
-
-            if (! $class->belongsToOwner($owner)) {
-                throw new AuthorizationException('Cannot write tax classes outside the current owner scope.');
-            }
+            self::assertSlugIsUnique($class);
         });
 
         static::deleting(function (self $class): void {
@@ -155,6 +151,32 @@ class TaxClass extends Model implements Auditable
 
             $query->update(['tax_class' => $replacementClassSlug ?? 'standard']);
         });
+    }
+
+    private static function assertSlugIsUnique(self $class): void
+    {
+        $slug = (string) $class->getAttribute('slug');
+
+        if ($slug === '') {
+            return;
+        }
+
+        $query = static::query()
+            ->withoutOwnerScope()
+            ->where('slug', $slug)
+            ->when($class->exists, fn (Builder $builder): Builder => $builder->whereKeyNot($class->getKey()));
+
+        if ($class->owner_type === null && $class->owner_id === null) {
+            $query->whereNull('owner_type')->whereNull('owner_id');
+        } else {
+            $query->where('owner_type', $class->owner_type)->where('owner_id', $class->owner_id);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'slug' => 'The tax class slug has already been taken for this owner.',
+            ]);
+        }
     }
 
     // =========================================================================
@@ -229,28 +251,6 @@ class TaxClass extends Model implements Auditable
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('position', 'asc');
-    }
-
-    /**
-     * Scope query to the specified owner.
-     *
-     * @param  Builder<static>  $query
-     * @param  EloquentModel|null  $owner  The owner to scope to
-     * @param  bool  $includeGlobal  Whether to include global (ownerless) records
-     * @return Builder<static>
-     */
-    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
-    {
-        if (! config('tax.features.owner.enabled', false)) {
-            return $query;
-        }
-
-        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
-
-        /** @var Builder<static> $scoped */
-        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
-
-        return $scoped;
     }
 
     // =========================================================================

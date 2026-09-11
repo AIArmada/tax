@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+$tablePrefix = (string) env('TAX_TABLE_PREFIX', env('COMMERCE_TABLE_PREFIX', ''));
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -11,11 +13,12 @@ return [
     'database' => [
         'json_column_type' => env('TAX_JSON_COLUMN_TYPE', 'jsonb'),
         'tables' => [
-            'tax_zones' => 'tax_zones',
-            'tax_rates' => 'tax_rates',
-            'tax_classes' => 'tax_classes',
-            'tax_exemptions' => 'tax_exemptions',
+            'tax_zones' => $tablePrefix . 'tax_zones',
+            'tax_rates' => $tablePrefix . 'tax_rates',
+            'tax_classes' => $tablePrefix . 'tax_classes',
+            'tax_exemptions' => $tablePrefix . 'tax_exemptions',
         ],
+        'table_prefix' => $tablePrefix,
     ],
 
     /*
@@ -27,7 +30,7 @@ return [
         'currency' => env('TAX_DEFAULT_CURRENCY', 'MYR'),
         'prices_include_tax' => env('TAX_PRICES_INCLUDE_TAX', false),
         'calculate_tax_on_shipping' => env('TAX_ON_SHIPPING', true),
-        'round_at_subtotal' => true,
+        'round_per_rate' => true,
     ],
 
     /*

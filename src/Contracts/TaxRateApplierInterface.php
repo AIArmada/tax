@@ -13,7 +13,7 @@ interface TaxRateApplierInterface
      * Apply rates to an amount and return the calculated tax.
      *
      * @param  Collection<int, TaxRate>  $rates
-     * @return array{total: int, primary_rate: TaxRate, breakdown: array<int, array{name: string, rate: int, amount: int, is_compound: bool}>}
+     * @return array{total: int, primary_rate: TaxRate|null, breakdown: array<int, array{name: string, rate: int, amount: int, is_compound: bool}>}
      */
     public function apply(int $amountInCents, Collection $rates, bool $pricesIncludeTax): array;
 }

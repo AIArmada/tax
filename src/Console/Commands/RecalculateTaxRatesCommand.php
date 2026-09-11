@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Console\Commands;
 
+use AIArmada\CommerceSupport\Support\OwnerBatchRunner;
 use AIArmada\Tax\Models\TaxRate;
 use Illuminate\Console\Command;
 
@@ -16,6 +17,17 @@ final class RecalculateTaxRatesCommand extends Command
     protected $description = 'Recalculate and sync tax rates across all zones';
 
     public function handle(): int
+    {
+        return (int) (new OwnerBatchRunner(
+            TaxRate::class,
+            [
+                'enabled' => 'tax.features.owner.enabled',
+                'include_global' => 'tax.features.owner.include_global',
+            ],
+        ))->run(fn (): int => $this->recalculate());
+    }
+
+    private function recalculate(): int
     {
         $query = TaxRate::query();
 

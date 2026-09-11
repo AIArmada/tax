@@ -27,7 +27,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable;
@@ -62,9 +61,7 @@ class TaxExemption extends Model implements Auditable
     /** @use HasFactory<TaxExemptionFactory> */
     use HasFactory;
 
-    use HasOwner {
-        scopeForOwner as baseScopeForOwner;
-    }
+    use HasOwner;
     use HasOwnerScopeConfig;
     use HasStates;
     use HasUuids;
@@ -154,13 +151,17 @@ class TaxExemption extends Model implements Auditable
                     modelClass: $exemption->exemptable_type,
                     id: $exemption->exemptable_id,
                     owner: $owner,
-                    includeGlobal: false,
+                    includeGlobal: (bool) config('tax.features.owner.include_global', false),
                     message: 'Exemptable entity is not accessible in the current owner scope.',
                 );
             }
 
             if ($exemption->tax_zone_id !== null && ($exemption->isDirty('tax_zone_id') || ! $exemption->exists)) {
                 $zoneExists = TaxZone::query()
+                    ->forOwner(
+                        $owner,
+                        includeGlobal: (bool) config('tax.features.owner.include_global', false),
+                    )
                     ->whereKey($exemption->tax_zone_id)
                     ->exists();
 
@@ -273,26 +274,6 @@ class TaxExemption extends Model implements Auditable
                 $builder->orWhere('tax_zone_id', $zoneId);
             }
         });
-    }
-
-    /**
-     * Scope query to the specified owner, respecting the `include_global` config.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeForOwner(Builder $query, ?EloquentModel $owner, bool $includeGlobal = true): Builder
-    {
-        if (! config('tax.features.owner.enabled', false)) {
-            return $query;
-        }
-
-        $includeGlobal = $includeGlobal && (bool) config('tax.features.owner.include_global', false);
-
-        /** @var Builder<static> $scoped */
-        $scoped = $this->baseScopeForOwner($query, $owner, $includeGlobal);
-
-        return $scoped;
     }
 
     // =========================================================================

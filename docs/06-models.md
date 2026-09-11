@@ -70,8 +70,7 @@ TaxZone::forOwner($owner, $includeGlobal);   // Owner scoped
 // Check if address matches this zone
 $zone->matchesAddress($country, $state, $postcode); // bool
 
-// Create a virtual zero-rate zone
-$virtual = TaxZone::zeroRate();
+// Unknown-zone results do not fabricate a TaxZone model.
 ```
 
 ### Factory
@@ -180,8 +179,7 @@ $rate->calculateTax(10000); // int: 600
 // Extract tax from inclusive amount
 $rate->extractTax(10600);   // int: 600
 
-// Create virtual zero rate
-$virtual = TaxRate::zeroRate('standard', $zone);
+// No virtual TaxRate is created when no configured rate matches.
 ```
 
 ### Factory
