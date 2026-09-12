@@ -38,6 +38,10 @@ return new class extends Migration
             // Indexes
             $table->index(['zone_id', 'tax_class', 'is_active']);
             $table->index(['is_active', 'priority']);
+            $table->index(
+                ['zone_id', 'tax_class', 'is_active', 'is_compound', 'priority'],
+                'tax_rates_zone_class_active_compound_priority_index',
+            );
         });
     }
 
