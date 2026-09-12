@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Services\ZoneResolver;
 
+use AIArmada\Tax\Contracts\TaxZoneResolverCacheInterface;
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Models\TaxZone;
 
-final class CompositeZoneResolver implements TaxZoneResolverInterface
+final class CompositeZoneResolver implements TaxZoneResolverCacheInterface, TaxZoneResolverInterface
 {
     /** @var array<int, TaxZoneResolverInterface> */
     private array $resolvers;
@@ -42,5 +43,14 @@ final class CompositeZoneResolver implements TaxZoneResolverInterface
         }
 
         return $this->defaultResolver->handleUnknown();
+    }
+
+    public function clearCache(): void
+    {
+        foreach ($this->resolvers as $resolver) {
+            if ($resolver instanceof TaxZoneResolverCacheInterface) {
+                $resolver->clearCache();
+            }
+        }
     }
 }

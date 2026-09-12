@@ -32,10 +32,10 @@ final class TaxServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        $this->app->singleton(TaxZoneResolverInterface::class, CompositeZoneResolver::class);
+        $this->app->scoped(TaxZoneResolverInterface::class, CompositeZoneResolver::class);
         $this->app->singleton(TaxRateApplierInterface::class, StandardRateApplier::class);
 
-        $this->app->singleton(TaxCalculatorInterface::class, TaxCalculator::class);
+        $this->app->scoped(TaxCalculatorInterface::class, TaxCalculator::class);
         $this->app->alias(TaxCalculatorInterface::class, 'tax');
 
         $this->registerSettingsMigrationPath();

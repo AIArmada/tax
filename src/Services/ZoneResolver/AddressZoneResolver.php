@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax\Services\ZoneResolver;
 
+use AIArmada\Tax\Contracts\TaxZoneResolverCacheInterface;
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Models\TaxZone;
 use AIArmada\Tax\Services\TaxOwnerScope;
 use Illuminate\Database\Eloquent\Builder;
 
-final class AddressZoneResolver implements TaxZoneResolverInterface
+final class AddressZoneResolver implements TaxZoneResolverCacheInterface, TaxZoneResolverInterface
 {
+    /**
+     * @var array<string, TaxZone|null>
+     */
+    private array $resolvedZones = [];
+
     private ?bool $enabled;
 
     private ?string $addressPriority;
@@ -51,12 +57,44 @@ final class AddressZoneResolver implements TaxZoneResolverInterface
             return null;
         }
 
-        return $this->findZoneByAddress(
-            $address['country'] ?? 'MY',
-            $address['state'] ?? null,
-            $address['postcode'] ?? null,
+        $country = $address['country'] ?? 'MY';
+        $state = $address['state'] ?? null;
+        $postcode = $address['postcode'] ?? null;
+        $cacheKey = $this->buildCacheKey($country, $state, $postcode, $context);
+
+        if (array_key_exists($cacheKey, $this->resolvedZones)) {
+            return $this->resolvedZones[$cacheKey];
+        }
+
+        return $this->resolvedZones[$cacheKey] = $this->findZoneByAddress(
+            $country,
+            $state,
+            $postcode,
             $context,
         );
+    }
+
+    public function clearCache(): void
+    {
+        $this->resolvedZones = [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function buildCacheKey(string $country, ?string $state, ?string $postcode, array $context): string
+    {
+        $owner = TaxOwnerScope::resolve($context);
+
+        return md5(serialize([
+            'country' => $country,
+            'state' => $state,
+            'postcode' => $postcode,
+            'owner_enabled' => (bool) config('tax.features.owner.enabled', false),
+            'owner_type' => $owner?->getMorphClass(),
+            'owner_id' => $owner?->getKey(),
+            'include_global' => (bool) config('tax.features.owner.include_global', false),
+        ]));
     }
 
     /**

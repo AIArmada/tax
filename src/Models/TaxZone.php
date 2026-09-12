@@ -9,6 +9,8 @@ use AIArmada\CommerceSupport\Concerns\LogsCommerceActivity;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Traits\HasOwner;
 use AIArmada\CommerceSupport\Traits\HasOwnerScopeConfig;
+use AIArmada\Tax\Contracts\TaxZoneResolverCacheInterface;
+use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
 use AIArmada\Tax\Database\Factories\TaxZoneFactory;
 use AIArmada\Tax\Enums\ZoneType;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -296,6 +298,27 @@ class TaxZone extends Model implements Auditable
 
             $zone->rates()->delete();
         });
+
+        static::saved(static function (): void {
+            self::clearResolverCache();
+        });
+
+        static::deleted(static function (): void {
+            self::clearResolverCache();
+        });
+    }
+
+    private static function clearResolverCache(): void
+    {
+        if (! app()->bound(TaxZoneResolverInterface::class)) {
+            return;
+        }
+
+        $resolver = app(TaxZoneResolverInterface::class);
+
+        if ($resolver instanceof TaxZoneResolverCacheInterface) {
+            $resolver->clearCache();
+        }
     }
 
     private static function assertCodeIsUnique(self $zone): void
