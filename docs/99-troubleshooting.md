@@ -359,7 +359,7 @@ php artisan migrate
 ### Slow Zone Resolution
 
 1. **Add database indexes** (already included in migrations)
-2. **Cache zone lookups**
+2. **Zone lookups are cached per request** — the resolver memoizes address and default zone resolution with owner-aware keys for the request lifetime and invalidates on zone/rate writes, so repeated checkout lines in one request resolve once. No manual `Cache::remember` wrapper is needed; for cross-request caching, cache at the caller:
    ```php
    $zone = Cache::remember(
        "tax-zone:{$country}:{$state}",
