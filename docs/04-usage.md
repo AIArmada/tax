@@ -75,10 +75,10 @@ $result = Tax::calculateTax(10000, 'standard', $zoneId);
 
 // Core properties
 $result->taxAmount;        // int: Tax in cents (e.g., 600)
-$result->rateId;           // string: Primary rate UUID
+$result->rateId;           // ?string: Primary rate UUID (`null` on zero-tax results)
 $result->rateName;         // string: Rate display name (e.g., "SST")
 $result->ratePercentage;   // int: Rate in basis points (e.g., 600 = 6.00%)
-$result->zoneId;           // string: Zone UUID
+$result->zoneId;           // ?string: Zone UUID (`null` when no zone resolved)
 $result->zoneName;         // string: Zone display name (e.g., "Malaysia")
 $result->includedInPrice;  // bool: Whether tax was extracted (tax-inclusive)
 $result->exemptionReason;  // ?string: Reason if exempt
@@ -426,6 +426,8 @@ $default = TaxZone::where('is_default', true)->first();
 // Check address match
 $zone->matchesAddress('MY', 'Selangor', '43000'); // bool
 ```
+
+Zero-tax results return `taxAmount: 0` with nullable identifiers (`rateId: null`, `zoneId: $zone?->id`) rather than a fabricated zone or rate model. Exempt results use `rateId: 'exempt'` with a nullable `zoneId`.
 
 ### TaxRate
 

@@ -108,6 +108,17 @@ return [
 | `defaults.calculate_tax_on_shipping` | bool | `true` | Whether to apply tax to shipping costs |
 | `defaults.round_per_rate` | bool | `true` | Round each rate result before adding it to the total |
 
+### Per-Rate Rounding (`StandardRateApplier`)
+
+`AIArmada\Tax\Services\RateApplier\StandardRateApplier` reads `tax.defaults.round_per_rate` (default `true`) and rounds each rate result before adding it to the total. Compound rates build on `amount + accumulated non-compound tax` (tax-exclusive); tax-inclusive prices keep the original amount as the extraction base:
+
+```php
+use AIArmada\Tax\Services\RateApplier\StandardRateApplier;
+
+$applier = new StandardRateApplier(roundPerRate: true);
+$result = $applier->apply($amountInCents, $rates, $pricesIncludeTax);
+```
+
 ### Feature Options
 
 | Key | Type | Default | Description |
