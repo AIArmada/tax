@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace AIArmada\Tax;
 
-use AIArmada\Tax\Console\Commands\RecalculateTaxRatesCommand;
-use AIArmada\Tax\Console\Commands\SyncTaxZonesCommand;
 use AIArmada\Tax\Contracts\TaxCalculatorInterface;
 use AIArmada\Tax\Contracts\TaxRateApplierInterface;
 use AIArmada\Tax\Contracts\TaxZoneResolverInterface;
@@ -23,11 +21,7 @@ final class TaxServiceProvider extends PackageServiceProvider
             ->name('tax')
             ->hasConfigFile()
             ->runsMigrations()
-            ->discoversMigrations()
-            ->hasCommands([
-                RecalculateTaxRatesCommand::class,
-                SyncTaxZonesCommand::class,
-            ]);
+            ->discoversMigrations();
     }
 
     public function packageRegistered(): void

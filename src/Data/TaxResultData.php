@@ -7,6 +7,7 @@ namespace AIArmada\Tax\Data;
 use AIArmada\CommerceSupport\Support\MoneyFormatter;
 use Akaunting\Money\Money;
 use Spatie\LaravelData\Data;
+use Throwable;
 
 class TaxResultData extends Data
 {
@@ -68,8 +69,14 @@ class TaxResultData extends Data
 
     public function getMoney(): Money
     {
-        $currency = $this->currency;
+        $currency = preg_match('/^[A-Z]{3}$/', mb_strtoupper($this->currency)) === 1
+            ? mb_strtoupper($this->currency)
+            : (string) config('tax.defaults.currency', 'MYR');
 
-        return Money::{$currency}($this->taxAmount);
+        try {
+            return Money::{$currency}($this->taxAmount);
+        } catch (Throwable) {
+            return Money::MYR($this->taxAmount);
+        }
     }
 }

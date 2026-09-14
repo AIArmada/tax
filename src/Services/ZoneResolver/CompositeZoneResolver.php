@@ -52,5 +52,7 @@ final class CompositeZoneResolver implements TaxZoneResolverCacheInterface, TaxZ
                 $resolver->clearCache();
             }
         }
+
+        $this->defaultResolver->clearCache();
     }
 }

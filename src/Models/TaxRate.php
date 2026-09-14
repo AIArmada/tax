@@ -51,8 +51,6 @@ class TaxRate extends Model implements Auditable
     use LogsCommerceActivity;
 
     protected $fillable = [
-        'owner_type',
-        'owner_id',
         'zone_id',
         'tax_class',
         'name',

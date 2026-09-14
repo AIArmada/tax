@@ -223,7 +223,13 @@ class TaxCalculator implements TaxCalculatorInterface
      */
     private function getCurrency(array $context = []): string
     {
-        return $context['currency'] ?? (string) config('tax.defaults.currency', 'MYR');
+        $currency = $context['currency'] ?? null;
+
+        if (is_string($currency) && preg_match('/^[A-Z]{3}$/', mb_strtoupper($currency)) === 1) {
+            return mb_strtoupper($currency);
+        }
+
+        return (string) config('tax.defaults.currency', 'MYR');
     }
 
     private function isTaxEnabled(): bool

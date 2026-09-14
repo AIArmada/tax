@@ -381,7 +381,7 @@ $exemption = app(RequestTaxExemption::class)->execute([
 ]);
 ```
 
-The action creates the exemption with `pending` status automatically.
+The action creates the exemption with `pending` status automatically. Only the request fields above are accepted; `status`, verification, rejection, and ownership fields in the input are ignored so callers cannot self-approve or spoof ownership.
 
 ### Approving via Action
 

@@ -56,8 +56,6 @@ class TaxZone extends Model implements Auditable
     use LogsCommerceActivity;
 
     protected $fillable = [
-        'owner_type',
-        'owner_id',
         'name',
         'code',
         'description',
@@ -145,6 +143,11 @@ class TaxZone extends Model implements Auditable
     }
 
     /**
+     * Candidate prefilter by country/state only. Postcode patterns support
+     * ranges and wildcards that cannot be expressed portably in SQL, so the
+     * $postcode argument is informational here: callers must apply
+     * matchesAddress() to each candidate before accepting a zone.
+     *
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
@@ -360,6 +363,23 @@ class TaxZone extends Model implements Auditable
         // Range match (e.g., "10000-19999")
         if (str_contains($pattern, '-')) {
             [$start, $end] = explode('-', $pattern, 2);
+
+            if (ctype_digit(mb_trim($start)) && ctype_digit(mb_trim($end))) {
+                if (preg_match('/[A-Za-z]/', $postcode) === 1) {
+                    return false;
+                }
+
+                $digits = preg_replace('/[^0-9]/', '', $postcode);
+
+                if (! is_string($digits) || $digits === '') {
+                    return false;
+                }
+
+                $numericPostcode = (int) $digits;
+
+                return $numericPostcode >= (int) $start && $numericPostcode <= (int) $end;
+            }
+
             $numericPostcode = (int) preg_replace('/[^0-9]/', '', $postcode);
 
             $startNumeric = (int) preg_replace('/[^0-9]/', '', $start);

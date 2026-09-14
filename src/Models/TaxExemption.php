@@ -71,8 +71,6 @@ class TaxExemption extends Model implements Auditable
     use LogsCommerceActivity;
 
     protected $fillable = [
-        'owner_type',
-        'owner_id',
         'exemptable_id',
         'exemptable_type',
         'tax_zone_id',

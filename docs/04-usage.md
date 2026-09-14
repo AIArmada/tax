@@ -568,27 +568,6 @@ app(RejectExemptionAction::class)->execute(
 // Transitions status to rejected, sets rejection_reason
 ```
 
-## Console Commands
-
-### RecalculateTaxRatesCommand
-
-Recalculate and sync tax rates across all zones:
-
-```bash
-php artisan tax:recalculate-rates
-php artisan tax:recalculate-rates --zone={uuid}
-php artisan tax:recalculate-rates --dry-run
-```
-
-### SyncTaxZonesCommand
-
-Sync tax zone configurations:
-
-```bash
-php artisan tax:sync-zones
-php artisan tax:sync-zones --dry-run
-```
-
 ## Integration Example
 
 Complete checkout integration:

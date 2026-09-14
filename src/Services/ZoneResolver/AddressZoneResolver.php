@@ -106,7 +106,7 @@ final class AddressZoneResolver implements TaxZoneResolverCacheInterface, TaxZon
         $query = TaxOwnerScope::apply(TaxZone::forAddress($country, $state, $postcode), $context);
 
         return $query
-            ->get()
+            ->cursor()
             ->first(fn (TaxZone $zone) => $zone->matchesAddress($country, $state, $postcode));
     }
 }

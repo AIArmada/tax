@@ -34,7 +34,6 @@ The `aiarmada/tax` package owns zone-based tax calculation, tax configuration da
 - **Models** — `TaxZone`, `TaxClass`, `TaxRate`, `TaxExemption`
 - **Contracts and DTOs** — `TaxCalculatorInterface`, `TaxRateApplierInterface`, `TaxZoneResolverInterface`, `TaxResultData`
 - **Actions** — `RequestTaxExemption`, `ApproveExemptionAction`, `RejectExemptionAction`
-- **Console Commands** — `RecalculateTaxRatesCommand`, `SyncTaxZonesCommand`
 - **Services and settings** — `TaxCalculator`, `StandardRateApplier`, `AddressZoneResolver`, `CompositeZoneResolver`, `DefaultZoneResolver`, `ZoneIdResolver`, `TaxSettings`, `TaxZoneSettings`
 
 ## Owner scoping and security notes
@@ -160,10 +159,6 @@ packages/tax/
     │       ├── RequestTaxExemption.php
     │       ├── ApproveExemptionAction.php
     │       └── RejectExemptionAction.php
-    ├── Console/
-    │   └── Commands/
-    │       ├── RecalculateTaxRatesCommand.php
-    │       └── SyncTaxZonesCommand.php
     ├── Contracts/
     │   ├── TaxCalculatorInterface.php
     │   ├── TaxRateApplierInterface.php
