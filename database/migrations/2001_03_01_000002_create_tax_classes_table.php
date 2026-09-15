@@ -29,9 +29,4 @@ return new class extends Migration
             $table->index(['is_active', 'position']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists((string) config('tax.database.tables.tax_classes', 'tax_classes'));
-    }
 };

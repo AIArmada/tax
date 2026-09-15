@@ -44,9 +44,4 @@ return new class extends Migration
             );
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists((string) config('tax.database.tables.tax_rates', 'tax_rates'));
-    }
 };

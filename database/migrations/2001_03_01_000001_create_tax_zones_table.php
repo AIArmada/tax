@@ -42,9 +42,4 @@ return new class extends Migration
             $table->index('is_default');
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists((string) config('tax.database.tables.tax_zones', 'tax_zones'));
-    }
 };

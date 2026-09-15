@@ -45,9 +45,4 @@ return new class extends Migration
             $table->index(['tax_zone_id']);
         });
     }
-
-    public function down(): void
-    {
-        Schema::dropIfExists((string) config('tax.database.tables.tax_exemptions', 'tax_exemptions'));
-    }
 };
