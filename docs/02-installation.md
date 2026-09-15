@@ -9,7 +9,7 @@ title: Installation
 Before installing, ensure you have:
 
 - PHP 8.4 or higher
-- Laravel 11 or higher
+- Laravel 13 or higher
 - Composer
 
 ## Install via Composer
