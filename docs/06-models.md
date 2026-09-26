@@ -60,9 +60,12 @@ $zone->rates; // Collection<TaxRate>
 ```php
 TaxZone::active();                           // is_active = true
 TaxZone::default();                          // is_default = true
-TaxZone::forAddress('MY', 'Selangor', '43000'); // Matching address
+TaxZone::forAddress('MY', 'Selangor', '43000'); // Candidate prefilter
 TaxZone::forOwner($owner, $includeGlobal);   // Owner scoped
 ```
+
+> **info**
+> `forAddress()` filters by country and state in SQL and orders by priority. Postcode patterns are evaluated in PHP, so the `$postcode` argument does not narrow the query — call `matchesAddress()` on each candidate before accepting a zone.
 
 ### Methods
 
@@ -239,14 +242,12 @@ TaxClass::default();  // is_default = true
 TaxClass::ordered();  // ORDER BY position ASC
 ```
 
-### Static Methods
+`TaxClass` exposes no `getDefault()` or `findBySlug()` helpers — use the scopes above
+or a plain query:
 
 ```php
-// Get the default tax class
-$default = TaxClass::getDefault(); // ?TaxClass
-
-// Find by slug
-$class = TaxClass::findBySlug('reduced'); // ?TaxClass
+$default = TaxClass::default()->first();          // ?TaxClass
+$class = TaxClass::where('slug', 'reduced')->first(); // ?TaxClass
 ```
 
 ### Factory
@@ -279,9 +280,9 @@ Schema::create('tax_exemptions', function (Blueprint $table) {
     $table->string('status')->default('pending');
     $table->text('rejection_reason')->nullable();
     $table->timestamp('verified_at')->nullable();
-    $table->uuid('verified_by')->nullable();
     $table->timestamp('starts_at')->nullable();
     $table->timestamp('expires_at')->nullable();
+    $table->timestamp('revoked_at')->nullable();
     $table->timestamps();
 });
 ```
@@ -297,12 +298,12 @@ Schema::create('tax_exemptions', function (Blueprint $table) {
 | `reason` | string | Exemption reason |
 | `certificate_number` | string\|null | Certificate identifier |
 | `document_path` | string\|null | Uploaded document path |
-| `status` | string | `pending`, `approved`, `rejected` |
+| `status` | string | `pending`, `under_review`, `approved`, `rejected`, `expired`, `revoked` |
 | `rejection_reason` | string\|null | Why rejected |
 | `verified_at` | datetime\|null | Verification timestamp |
-| `verified_by` | string\|null | Verifier UUID |
 | `starts_at` | datetime\|null | Validity start |
 | `expires_at` | datetime\|null | Validity end |
+| `revoked_at` | datetime\|null | Revocation timestamp |
 
 ### Relationships
 
@@ -333,9 +334,12 @@ $exemption->isRejected();  // bool
 // Zone check
 $exemption->appliesToZone($zoneId); // bool
 
-// Workflow
+// Workflow (all delegate to the ModelStates state machine)
 $exemption->approve();            // Sets approved + verified_at
-$exemption->reject($reason);      // Sets rejected + reason
+$exemption->reject($reason);      // Sets rejected + rejection_reason
+$exemption->markUnderReview();    // Sets under_review
+$exemption->revoke();             // Sets revoked + revoked_at
+$exemption->expire();             // Sets expired
 ```
 
 ### Factory
@@ -432,7 +436,7 @@ public function apply(
     bool $pricesIncludeTax
 ): array{
     total: int,
-    primary_rate: TaxRate,
+    primary_rate: TaxRate|null,
     breakdown: array<int, array{
         name: string,
         rate: int,

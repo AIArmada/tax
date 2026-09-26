@@ -16,6 +16,8 @@ After publishing (`php artisan vendor:publish --tag=tax-config`), edit `config/t
 ```php
 <?php
 
+$tablePrefix = (string) env('TAX_TABLE_PREFIX', env('COMMERCE_TABLE_PREFIX', ''));
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -24,17 +26,14 @@ return [
     */
     'database' => [
         'json_column_type' => env('TAX_JSON_COLUMN_TYPE', 'jsonb'),
-        'table_prefix' => env('TAX_TABLE_PREFIX', env('COMMERCE_TABLE_PREFIX', '')),
         'tables' => [
-            'tax_zones' => 'tax_zones',
-            'tax_rates' => 'tax_rates',
-            'tax_classes' => 'tax_classes',
-            'tax_exemptions' => 'tax_exemptions',
+            'tax_zones' => $tablePrefix . 'tax_zones',
+            'tax_rates' => $tablePrefix . 'tax_rates',
+            'tax_classes' => $tablePrefix . 'tax_classes',
+            'tax_exemptions' => $tablePrefix . 'tax_exemptions',
         ],
-
+        'table_prefix' => $tablePrefix,
     ],
-
-
     /*
     |--------------------------------------------------------------------------
     | Defaults
@@ -94,11 +93,11 @@ return [
 |-----|------|---------|-------------|
 | `database.json_column_type` | string | `'jsonb'` | JSON column type used by tax migrations |
 | `database.table_prefix` | string | `''` | Prefix applied to tax table names |
-| `database.tables.tax_zones` | string | `'tax_zones'` | Tax zones table name |
-| `database.tables.tax_rates` | string | `'tax_rates'` | Tax rates table name |
+| `database.tables.tax_zones` | string | `'tax_zones'` (with `table_prefix` prepended) | Tax zones table name |
+| `database.tables.tax_rates` | string | `'tax_rates'` (with `table_prefix` prepended) | Tax rates table name |
 | `defaults.currency` | string | `'MYR'` | Fallback ISO 4217 currency for tax results |
-| `database.tables.tax_classes` | string | `'tax_classes'` | Tax classes table name |
-| `database.tables.tax_exemptions` | string | `'tax_exemptions'` | Tax exemptions table name |
+| `database.tables.tax_classes` | string | `'tax_classes'` (with `table_prefix` prepended) | Tax classes table name |
+| `database.tables.tax_exemptions` | string | `'tax_exemptions'` (with `table_prefix` prepended) | Tax exemptions table name |
 
 ### Default Behavior Options
 

@@ -176,6 +176,7 @@ packages/tax/
     │   └── TaxZone.php
     ├── Services/
     │   ├── TaxCalculator.php        # Main calculation engine
+    │   ├── TaxOwnerScope.php        # Owner query-scoping helper
     │   ├── RateApplier/
     │   │   └── StandardRateApplier.php
     │   └── ZoneResolver/
@@ -186,8 +187,6 @@ packages/tax/
     ├── Settings/
     │   ├── TaxSettings.php          # Runtime settings
     │   └── TaxZoneSettings.php      # Zone resolution settings
-    ├── Support/
-    │   └── OwnerQuery.php           # Query-scoping utilities
     └── TaxServiceProvider.php
 ```
 
@@ -196,7 +195,7 @@ packages/tax/
 | Requirement | Version |
 |-------------|---------|
 | PHP | 8.4+ |
-| Laravel | 11+ |
+| Laravel | 13+ |
 | `aiarmada/commerce-support` | Required |
 | `spatie/laravel-data` | Required (for DTOs) |
 | `spatie/laravel-settings` | Optional (for runtime config) |
