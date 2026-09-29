@@ -2,6 +2,8 @@
 title: Multitenancy
 ---
 
+import Aside from "@components/Aside.astro"
+
 # Multitenancy
 
 The tax package supports multi-tenant architectures using the `commerce-support` owner scoping system, allowing tax zones and rates to be isolated by tenant (merchant, store, organisation).
@@ -22,8 +24,9 @@ The tax package supports multi-tenant architectures using the `commerce-support`
 TAX_OWNER_ENABLED=true
 ```
 
-> **warning**
-> The default is `false` (single-tenant). Without enabling this, all tenants share the same tax zones and rates. Always set `TAX_OWNER_ENABLED=true` in multi-tenant deployments.
+<Aside variant="warning">
+  The default is `false` (single-tenant). Without enabling this, all tenants share the same tax zones and rates. Always set `TAX_OWNER_ENABLED=true` in multi-tenant deployments.
+</Aside>
 
 ## Binding the Owner Resolver
 
@@ -48,7 +51,7 @@ When `owner.enabled` is `true`:
 
 1. `TaxZone` queries are automatically scoped to the resolved owner
 2. New zones get `owner_type` / `owner_id` set automatically
-3. If the owner cannot be resolved, the operation throws `NoCurrentOwnerException` rather than falling back to global reads. Use `OwnerContext::withOwner(null, ...)` for deliberate global work
+3. If the owner cannot be resolved, queries fail closed (return zero rows)
 4. Tax calculation uses only zones that belong to the current owner (plus global zones if `include_global` is configured)
 
 ## Owner-Scoped Models
@@ -56,17 +59,12 @@ When `owner.enabled` is `true`:
 | Model | Owner Columns |
 |-------|--------------|
 | `TaxZone` | `owner_type`, `owner_id` |
-| `TaxRate` | `owner_type`, `owner_id` |
+| `TaxRate` | scoped via `TaxZone` |
 | `TaxExemption` | `owner_type`, `owner_id` |
-
-All three read their boundary from `tax.features.owner`, so they are scoped independently
-rather than inherited from `TaxZone`.
 
 ## Global Tax Zones
 
-Tax zones with `owner_id = null` are **global**: they belong to no tenant, not to every
-tenant (e.g. platform-wide national GST/SST rates). The default does **not** include global
-zones in queries (`include_global = false`):
+Tax zones with `owner_id = null` represent platform-wide zones (e.g. national GST/SST rates) shared across all tenants. The default does **not** include global zones in queries (`include_global = false`):
 
 ```php
 use AIArmada\Tax\Models\TaxZone;
@@ -78,8 +76,9 @@ $zones = TaxZone::forOwner($tenant)->get();
 $zones = TaxZone::forOwner($tenant, includeGlobal: true)->get();
 ```
 
-> **info**
-> `include_global` has no env override — set it directly in `config/tax.php`. Enable it if your deployment has shared platform tax zones (e.g. country-level rates) alongside per-tenant custom rates. `forOwner(null)` means global-only, not "all owners"; use `globalOnly()` to select global rows explicitly.
+<Aside variant="info">
+  `include_global` has no env override — set it directly in `config/tax.php`. Enable it if your deployment has shared platform tax zones (e.g. country-level rates) alongside per-tenant custom rates.
+</Aside>
 
 ## Tax Calculation in Multi-Tenant Context
 
@@ -90,11 +89,11 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Tax\Facades\Tax;
 
 // Owner context already set (e.g. via middleware) — just calculate
-$result = Tax::calculateTax($amountInCents, 'standard', $zoneId, $context);
+$result = Tax::calculateTax(10000, 'standard');
 
 // Explicit context for background processing
-OwnerContext::withOwner($tenant, function () use ($amountInCents, $zoneId, $context): void {
-    $result = Tax::calculateTax($amountInCents, 'standard', $zoneId, $context);
+OwnerContext::withOwner($tenant, function (): void {
+    $result = Tax::calculateTax(10000, 'standard');
 });
 ```
 

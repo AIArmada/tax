@@ -58,10 +58,9 @@ $exemption = TaxExemption::create([
 | `reason` | string | Exemption reason |
 | `certificate_number` | string\|null | Certificate/document number |
 | `document_path` | string\|null | Path to uploaded certificate |
-| `status` | string | `pending`, `under_review`, `approved`, `rejected`, `expired`, `revoked` |
+| `status` | string | `pending`, `approved`, `rejected` |
 | `rejection_reason` | string\|null | Reason for rejection |
 | `verified_at` | datetime\|null | When verified |
-| `revoked_at` | datetime\|null | When revoked |
 | `starts_at` | datetime\|null | When exemption begins |
 | `expires_at` | datetime\|null | When exemption ends |
 
@@ -114,9 +113,6 @@ $exemption->isRejected();  // status === 'rejected'
 $exemption->isActive();    // approved + valid dates + not expired
 $exemption->isExpired();   // expires_at < now
 ```
-
-> **info**
-> `status` is cast to the `AIArmada\Tax\States\TaxExemptionState` `ModelStates` state machine with six states: `pending`, `under_review`, `approved`, `rejected`, `expired`, `revoked`. Only the transitions declared in `TaxExemptionState::config()` are legal, and the model exposes `markUnderReview()`, `revoke()`, and `expire()` alongside `approve()` and `reject()`.
 
 ## Zone-Specific vs Global Exemptions
 
@@ -239,8 +235,7 @@ if ($result->isExempt()) {
     echo "Tax exempt: " . $result->exemptionReason;
     // taxAmount will be 0
 } else {
-    // getFormattedAmount() takes an ISO 4217 code, not a symbol
-    echo "Tax: " . $result->getFormattedAmount('MYR');
+    echo "Tax: " . $result->getFormattedAmount('RM');
 }
 ```
 
@@ -252,7 +247,7 @@ When exempt:
 $result->taxAmount;        // 0
 $result->rateId;           // 'exempt'
 $result->rateName;         // 'Tax Exempt'
-$result->ratePercentage;   // 0 (basis points)
+$result->ratePercentage;   // 0
 $result->exemptionReason;  // 'Non-profit organization'
 $result->isExempt();       // true
 ```
@@ -396,9 +391,8 @@ app(ApproveExemptionAction::class)->execute($exemption);
 // Transitions status via ModelStates, sets verified_at
 ```
 
-`$exemption->approve()` is a shorthand for `app(ApproveExemptionAction::class)->execute($exemption)`, so
-both paths use the `ModelStates` state machine. Using the action directly:
-- Makes the dependency explicit at the call site
+Unlike the model's `$exemption->approve()` shorthand, the action:
+- Uses the `ModelStates` state machine for the status transition
 - Can be dispatched to the queue for async workflows
 - Is testable as a resolved dependency
 
@@ -418,7 +412,7 @@ app(RejectExemptionAction::class)->execute(
 
 | Concern | Model Method | Action Class |
 |---------|-------------|-------------|
-| State transition | Delegates to the action, which uses ModelStates | ModelStates state machine |
+| State transition | Direct property set | ModelStates state machine |
 | Side effects | None | Testable, DI-friendly |
 | Dependency injection | Manual | Container-resolved |
 | Use case | Simple scripts, seeds | Production workflows, admin UI |

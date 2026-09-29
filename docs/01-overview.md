@@ -162,9 +162,16 @@ packages/tax/
     ├── Contracts/
     │   ├── TaxCalculatorInterface.php
     │   ├── TaxRateApplierInterface.php
+    │   ├── TaxZoneResolverCacheInterface.php
     │   └── TaxZoneResolverInterface.php
     ├── Data/
     │   └── TaxResultData.php        # Result DTO
+    ├── Enums/
+    │   └── ZoneType.php
+    ├── Events/
+    │   ├── TaxCalculated.php
+    │   ├── TaxExemptionApplied.php
+    │   └── TaxZoneResolved.php
     ├── Exceptions/
     │   └── TaxZoneNotFoundException.php
     ├── Facades/
@@ -176,7 +183,7 @@ packages/tax/
     │   └── TaxZone.php
     ├── Services/
     │   ├── TaxCalculator.php        # Main calculation engine
-    │   ├── TaxOwnerScope.php        # Owner query-scoping helper
+    │   ├── TaxOwnerScope.php
     │   ├── RateApplier/
     │   │   └── StandardRateApplier.php
     │   └── ZoneResolver/
@@ -187,6 +194,8 @@ packages/tax/
     ├── Settings/
     │   ├── TaxSettings.php          # Runtime settings
     │   └── TaxZoneSettings.php      # Zone resolution settings
+    ├── States/
+    │   └── TaxExemptionState/       # Exemption state machine
     └── TaxServiceProvider.php
 ```
 

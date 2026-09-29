@@ -86,11 +86,10 @@ $result->breakdown;        // array: All applied rates
 
 // Helper methods
 $result->isExempt();                    // bool: True if tax-exempt
-$result->getFormattedAmount();          // string: "RM6.00" (uses the result currency)
-$result->getFormattedAmount('MYR');     // string: explicit ISO 4217 currency
+$result->getFormattedAmount('RM');      // string: "RM 6.00"
 $result->getFormattedRate();            // string: "6.00%"
 $result->getSummary();                  // string: "SST (6.00%)"
-$result->hasCompoundTaxes();            // bool: True if any applied rate is compound
+$result->hasCompoundTaxes();            // bool: True if multiple rates applied
 ```
 
 ### Breakdown Array
@@ -311,7 +310,7 @@ $result = Tax::calculateTax(10000, 'standard', $zoneId, [
 if ($result->isExempt()) {
     echo "Exempt: " . $result->exemptionReason;
 } else {
-    echo "Tax: " . $result->getFormattedAmount();
+    echo "Tax: " . $result->getFormattedAmount('RM');
 }
 ```
 

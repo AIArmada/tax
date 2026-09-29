@@ -350,20 +350,9 @@ function debugExemption(string $customerId, string $customerType): void
 If you see errors about missing settings:
 
 ```bash
-# 1. Create the settings table
-php artisan vendor:publish --tag=migrations --provider="Spatie\LaravelSettings\LaravelSettingsServiceProvider"
-php artisan migrate
-
-# 2. Run the package's settings migrations
-#    (TaxServiceProvider already registers its own database/settings path)
+php artisan vendor:publish --tag=tax-settings
 php artisan migrate
 ```
-
-> **info**
-> The package appends its `database/settings` directory to
-> `settings.migrations_paths` at boot, so step 2 needs no copying. If you want
-> to edit the migration files, publish them with
-> `php artisan vendor:publish --tag="tax-settings"` first.
 
 ## Performance
 

@@ -60,12 +60,9 @@ $zone->rates; // Collection<TaxRate>
 ```php
 TaxZone::active();                           // is_active = true
 TaxZone::default();                          // is_default = true
-TaxZone::forAddress('MY', 'Selangor', '43000'); // Candidate prefilter
+TaxZone::forAddress('MY', 'Selangor', '43000'); // Matching address
 TaxZone::forOwner($owner, $includeGlobal);   // Owner scoped
 ```
-
-> **info**
-> `forAddress()` filters by country and state in SQL and orders by priority. Postcode patterns are evaluated in PHP, so the `$postcode` argument does not narrow the query — call `matchesAddress()` on each candidate before accepting a zone.
 
 ### Methods
 
@@ -242,12 +239,14 @@ TaxClass::default();  // is_default = true
 TaxClass::ordered();  // ORDER BY position ASC
 ```
 
-`TaxClass` exposes no `getDefault()` or `findBySlug()` helpers — use the scopes above
-or a plain query:
+### Static Methods
 
 ```php
-$default = TaxClass::default()->first();          // ?TaxClass
-$class = TaxClass::where('slug', 'reduced')->first(); // ?TaxClass
+// Get the default tax class
+$default = TaxClass::getDefault(); // ?TaxClass
+
+// Find by slug
+$class = TaxClass::findBySlug('reduced'); // ?TaxClass
 ```
 
 ### Factory
@@ -298,7 +297,7 @@ Schema::create('tax_exemptions', function (Blueprint $table) {
 | `reason` | string | Exemption reason |
 | `certificate_number` | string\|null | Certificate identifier |
 | `document_path` | string\|null | Uploaded document path |
-| `status` | string | `pending`, `under_review`, `approved`, `rejected`, `expired`, `revoked` |
+| `status` | string | `pending`, `approved`, `rejected` |
 | `rejection_reason` | string\|null | Why rejected |
 | `verified_at` | datetime\|null | Verification timestamp |
 | `starts_at` | datetime\|null | Validity start |
@@ -334,12 +333,9 @@ $exemption->isRejected();  // bool
 // Zone check
 $exemption->appliesToZone($zoneId); // bool
 
-// Workflow (all delegate to the ModelStates state machine)
+// Workflow
 $exemption->approve();            // Sets approved + verified_at
-$exemption->reject($reason);      // Sets rejected + rejection_reason
-$exemption->markUnderReview();    // Sets under_review
-$exemption->revoke();             // Sets revoked + revoked_at
-$exemption->expire();             // Sets expired
+$exemption->reject($reason);      // Sets rejected + reason
 ```
 
 ### Factory
@@ -436,7 +432,7 @@ public function apply(
     bool $pricesIncludeTax
 ): array{
     total: int,
-    primary_rate: TaxRate|null,
+    primary_rate: TaxRate,
     breakdown: array<int, array{
         name: string,
         rate: int,

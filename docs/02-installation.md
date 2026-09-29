@@ -43,25 +43,18 @@ This creates the following tables:
 | `tax_rates` | Tax percentages per zone/class |
 | `tax_exemptions` | Customer-specific exemptions |
 
-## Settings Migrations (Optional)
+## Publish Settings Migrations (Optional)
 
-The package registers its own `database/settings` path with
-`spatie/laravel-settings`, so the settings migrations run on `php artisan migrate`
-without any copying. To customise them, publish the path first:
+If you want runtime-configurable settings via Spatie Laravel Settings:
 
 ```bash
-php artisan vendor:publish --tag="tax-settings"
+php artisan vendor:publish --tag=tax-settings
 php artisan migrate
 ```
 
-This seeds settings for:
+This creates settings tables for:
 - `TaxSettings` - General tax configuration
 - `TaxZoneSettings` - Zone resolution settings
-
-> **info**
-> `TaxServiceProvider` appends the package's settings path to
-> `settings.migrations_paths` at boot, so an un-published install already picks
-> these up. Publishing is only needed when you want to edit the migration files.
 
 ## Manual Service Provider Registration
 
