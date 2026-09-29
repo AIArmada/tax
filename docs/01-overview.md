@@ -183,7 +183,7 @@ packages/tax/
     │   └── TaxZone.php
     ├── Services/
     │   ├── TaxCalculator.php        # Main calculation engine
-    │   ├── TaxOwnerScope.php
+    │   ├── TaxOwnerScope.php        # Owner query-scoping helper
     │   ├── RateApplier/
     │   │   └── StandardRateApplier.php
     │   └── ZoneResolver/
@@ -194,8 +194,6 @@ packages/tax/
     ├── Settings/
     │   ├── TaxSettings.php          # Runtime settings
     │   └── TaxZoneSettings.php      # Zone resolution settings
-    ├── States/
-    │   └── TaxExemptionState/       # Exemption state machine
     └── TaxServiceProvider.php
 ```
 

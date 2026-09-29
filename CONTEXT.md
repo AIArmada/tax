@@ -43,7 +43,7 @@ keywords:
 ## Key surfaces
 - Models: `TaxClass`, `TaxExemption`, `TaxRate`, `TaxZone`
 - Actions/Services: `Actions/Exemption/ApproveExemptionAction`, `Actions/Exemption/RejectExemptionAction`, `Actions/Exemption/RequestTaxExemption`, `Services/RateApplier/StandardRateApplier`, `Services/TaxCalculator`, `Services/ZoneResolver/AddressZoneResolver`, `Services/ZoneResolver/CompositeZoneResolver`, `Services/ZoneResolver/DefaultZoneResolver`
-- Config `tax.php`: `database`, `json_column_type`, `tables`, `tax_zones`, `tax_rates`, `tax_classes`, `tax_exemptions`, `defaults`, `currency`, `prices_include_tax`
+- Config `tax.php`: `database` (→ `json_column_type`, `table_prefix`, `tables.tax_zones`, `tables.tax_rates`, `tables.tax_classes`, `tables.tax_exemptions`), `defaults` (→ `currency`, `prices_include_tax`, `calculate_tax_on_shipping`, `round_per_rate`), `features` (→ `enabled`, `owner.*`, `zone_resolution.*`, `exemptions.enabled`)
 
 ## Docs map
 - Start: `01-overview` → `03-configuration` → `04-usage` → `99-troubleshooting`
