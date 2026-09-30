@@ -201,7 +201,7 @@ packages/tax/
 
 | Requirement | Version |
 |-------------|---------|
-| PHP | 8.4+ |
+| PHP | 8.5+ |
 | Laravel | 13+ |
 | `aiarmada/commerce-support` | Required |
 | `spatie/laravel-data` | Required (for DTOs) |
