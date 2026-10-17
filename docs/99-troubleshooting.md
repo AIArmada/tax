@@ -329,7 +329,7 @@ function debugExemption(string $customerId, string $customerType): void
 
 ### JSON Column Errors
 
-**MySQL 5.6 or older:**
+**SQLite:**
 ```php
 // config/tax.php
 'database' => [
