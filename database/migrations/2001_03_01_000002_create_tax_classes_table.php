@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create((string) config('tax.database.tables.tax_classes', 'tax_classes'), function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->nullableMorphs('owner');
+            $table->nullableUuidMorphs('owner');
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();

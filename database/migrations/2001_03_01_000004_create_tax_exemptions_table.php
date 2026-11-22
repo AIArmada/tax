@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create((string) config('tax.database.tables.tax_exemptions', 'tax_exemptions'), function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->nullableMorphs('owner');
+            $table->nullableUuidMorphs('owner');
 
             // Polymorphic: Customer, User, etc.
             $table->uuidMorphs('exemptable');

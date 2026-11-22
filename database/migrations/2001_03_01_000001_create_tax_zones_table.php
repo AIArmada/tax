@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::create((string) config('tax.database.tables.tax_zones', 'tax_zones'), function (Blueprint $table) use ($jsonColumnType): void {
             $table->uuid('id')->primary();
-            $table->nullableMorphs('owner');
+            $table->nullableUuidMorphs('owner');
             $table->string('name');
             $table->string('code');
             $table->text('description')->nullable();
